@@ -1,1 +1,2 @@
-from .locker import Locker
+from .locker import Locker, Base
+from .user import User

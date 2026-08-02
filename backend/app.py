@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
-from backend.database import get_db, engine
-from backend.models import Locker
+from backend.routers import health
+from backend.routers import lockers
+from backend.routers import users
 
 app = FastAPI(title="CloudLocker API")
 
@@ -12,12 +12,6 @@ def home():
     return {"message": "Welcome to CloudLocker"}
 
 
-@app.get("/lockers")
-def get_lockers(db: Session = Depends(get_db)):
-    lockers = db.query(Locker).all()
-    return lockers
-
-@app.get("/health")
-def health():
-    with engine.connect():
-        return {"database": "Connected"}
+app.include_router(health.router)
+app.include_router(lockers.router)
+app.include_router(users.router)
