@@ -21,3 +21,8 @@ class ReservationResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class AutoReservationCreate(BaseModel):
+    user_id: int
+    start_time: datetime
+    end_time: datetime
