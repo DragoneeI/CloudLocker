@@ -1,7 +1,15 @@
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from backend.routers import health, lockers, users, reservation_router, access_log_router
+from backend.routers import (
+    health,
+    lockers,
+    users,
+    reservation_router,
+    access_log_router,
+    face_router
+)
+
 from backend.database import SessionLocal
 from backend.services.reservation_service import expire_reservations
 
@@ -18,7 +26,7 @@ app.include_router(lockers.router)
 app.include_router(users.router)
 app.include_router(reservation_router)
 app.include_router(access_log_router)
-
+app.include_router(face_router)
 scheduler = BackgroundScheduler()
 
 
