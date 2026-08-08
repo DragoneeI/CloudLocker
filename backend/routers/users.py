@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.models import User, Locker, Reservation
 from backend.schemas import UserCreate, UserResponse
+from backend.services import rekognition_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -14,7 +15,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     new_user = User(
         full_name=user.full_name,
         email=user.email,
-        face_image=user.face_image,
+       # face_image=user.face_image,
     )
 
     db.add(new_user)
@@ -22,6 +23,29 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return new_user
+
+@router.post("/{user_id}/face")
+async def enroll_face(
+    user_id: int,
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    image_bytes = await image.read()
+
+    try:
+        face_id = rekognition_service.enroll_user_face(image_bytes, user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    user.face_image = face_id
+    db.commit()
+    db.refresh(user)
+
+    return {"status": "enrolled", "user_id": user_id, "face_id": face_id}
 
 @router.get("", response_model=list[UserResponse])
 def get_users(db: Session = Depends(get_db)):
