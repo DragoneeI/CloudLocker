@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from backend.models import User, Locker, Reservation, AccessLog
+from datetime import datetime
 
 
 def get_user(db: Session, user_id: int):
@@ -124,12 +125,14 @@ def assign_first_available_locker(db: Session, user_id: int, start_time, end_tim
 
     return reservation
 
-def finish_reservation(db: Session, reservation_id: int):
+def release_locker(db: Session, locker_id: int):
+
+    locker = get_locker(db, locker_id)
 
     reservation = (
         db.query(Reservation)
         .filter(
-            Reservation.reservation_id == reservation_id,
+            Reservation.locker_id == locker_id,
             Reservation.status == "Active"
         )
         .first()
@@ -138,17 +141,15 @@ def finish_reservation(db: Session, reservation_id: int):
     if not reservation:
         raise HTTPException(
             status_code=404,
-            detail="Active reservation not found"
+            detail="No active reservation found for this locker"
         )
-
-    locker = get_locker(db, reservation.locker_id)
 
     reservation.status = "Finished"
     locker.status = "Available"
 
     log = AccessLog(
         user_id=reservation.user_id,
-        locker_id=reservation.locker_id,
+        locker_id=locker_id,
         action="Released"
     )
 
@@ -157,3 +158,33 @@ def finish_reservation(db: Session, reservation_id: int):
     db.commit()
 
     return {"message": "Locker released successfully"}
+
+def expire_reservations(db: Session):
+
+    expired_reservations = (
+        db.query(Reservation)
+        .filter(
+            Reservation.status == "Active",
+            Reservation.end_time <= datetime.now()
+        )
+        .all()
+    )
+
+    for reservation in expired_reservations:
+
+        locker = get_locker(db, reservation.locker_id)
+
+        reservation.status = "Finished"
+        locker.status = "Available"
+
+        log = AccessLog(
+            user_id=reservation.user_id,
+            locker_id=reservation.locker_id,
+            action="Expired"
+        )
+
+        db.add(log)
+
+    db.commit()
+
+    return len(expired_reservations)

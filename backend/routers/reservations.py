@@ -3,7 +3,11 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend.schemas import ReservationCreate, ReservationResponse, AutoReservationCreate
-from backend.services.reservation_service import assign_specific_locker, assign_first_available_locker, finish_reservation
+from backend.services.reservation_service import (
+    assign_specific_locker, 
+    assign_first_available_locker,
+    expire_reservations
+)
 
 router = APIRouter(
     prefix="/reservations",
@@ -42,9 +46,12 @@ def create_auto_reservation(
         end_time=reservation.end_time
     )
 
-@router.post("/{reservation_id}/finish")
-def release_locker(
-    reservation_id: int,
+@router.post("/expire")
+def expire_reservations_endpoint(
     db: Session = Depends(get_db)
 ):
-    return finish_reservation(db, reservation_id)
+    count = expire_reservations(db)
+
+    return {
+        "message": f"{count} reservation(s) expired"
+    }
