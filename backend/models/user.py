@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from .locker import Base
 
 
@@ -9,3 +9,4 @@ class User(Base):
     full_name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     face_image = Column(String)
+    is_active = Column(Boolean, nullable=False, default=True)

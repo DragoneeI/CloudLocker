@@ -52,3 +52,12 @@ def identify_user(image_bytes: bytes, threshold: float = 90.0) -> dict:
         "user_id": best["Face"]["ExternalImageId"],
         "similarity": best["Similarity"],
     }
+
+def delete_user_face(face_id: str):
+    try:
+        client.delete_faces(
+            CollectionId=REKOGNITION_COLLECTION_ID,
+            FaceIds=[face_id]
+        )
+    except ClientError as e:
+        raise e
