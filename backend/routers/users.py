@@ -14,7 +14,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     new_user = User(
         full_name=user.full_name,
         email=user.email,
-        face_image=user.face_image,
+        # face_image=user.face_image,
     )
 
     db.add(new_user)
@@ -22,6 +22,30 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     return new_user
+
+@router.patch("")
+def edit_user(user_id : int, new_name : str=None, new_email : str=None, db : Session = Depends(get_db)):
+    user = (
+        db.query(User)
+        .filter(User.user_id == user_id)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    user.full_name = new_name or user.full_name
+    user.email = new_email or user.email
+    db.commit()
+
+    return {
+        "user ID": user_id,
+        "New Name": user.full_name,
+        "New Email": user.email
+    }
 
 @router.get("", response_model=list[UserResponse])
 def get_users(db: Session = Depends(get_db)):
@@ -256,15 +280,6 @@ def activate_user(
             status_code=400,
             detail="User is already active"
         )
-
-    active_reservation = (
-        db.query(Reservation)
-        .filter(
-            Reservation.user_id == user_id,
-            Reservation.status == "deactivated"
-        )
-        .first()
-    )
 
     user.is_active = True
     db.commit()

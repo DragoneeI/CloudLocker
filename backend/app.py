@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.routers import (
@@ -15,6 +16,15 @@ from backend.services.reservation_service import expire_reservations
 
 app = FastAPI(title="CloudLocker API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://52.5.26.213:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():

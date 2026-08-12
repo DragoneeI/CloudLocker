@@ -6,7 +6,10 @@ from backend.schemas import ReservationCreate, ReservationResponse, AutoReservat
 from backend.services.reservation_service import (
     assign_specific_locker, 
     assign_first_available_locker,
-    expire_reservations
+    expire_reservations,
+    force_release_reservation,
+    force_release_by_user,
+    force_release_by_locker
 )
 
 router = APIRouter(
@@ -55,3 +58,18 @@ def expire_reservations_endpoint(
     return {
         "message": f"{count} reservation(s) expired"
     }
+
+@router.post("/force-release/user/{user_id}")
+def force_release_user(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    return force_release_by_user(db, user_id)
+
+
+@router.post("/force-release/locker/{locker_id}")
+def force_release_locker(
+    locker_id: int,
+    db: Session = Depends(get_db)
+):
+    return force_release_by_locker(db, locker_id)

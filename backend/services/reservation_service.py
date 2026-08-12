@@ -52,7 +52,7 @@ def assign_specific_locker(db: Session, user_id: int, locker_id: int, start_time
 
     locker = get_locker(db, locker_id)
 
-    if user_is_deactivate:
+    if not User.is_active:
         raise HTTPException(
             status_code=400,
             detail="User is not active"
@@ -99,7 +99,7 @@ def assign_first_available_locker(db: Session, user_id: int, start_time, end_tim
 
     get_user(db, user_id)
 
-    if user_is_deactivate:
+    if not User.is_active:
         raise HTTPException(
             status_code=400,
             detail="User is not active"
@@ -183,6 +183,44 @@ def release_locker(db: Session, locker_id: int):
 
     return {"message": "Locker released successfully"}
 
+def force_release_reservation(db: Session, reservation_id: int):
+
+    reservation = (
+        db.query(Reservation)
+        .filter(
+            Reservation.reservation_id == reservation_id,
+            Reservation.status == "Active"
+        )
+        .first()
+    )
+
+    if not reservation:
+        raise HTTPException(
+            status_code=404,
+            detail="Active reservation not found"
+        )
+
+    locker = get_locker(db, reservation.locker_id)
+
+    reservation.status = "Finished"
+    locker.status = "Available"
+
+    log = AccessLog(
+        user_id=reservation.user_id,
+        locker_id=reservation.locker_id,
+        action="Force Released"
+    )
+
+    db.add(log)
+
+    db.commit()
+
+    return {
+        "message": "Reservation force released successfully",
+        "reservation_id": reservation.reservation_id,
+        "locker_id": locker.locker_id
+    }
+
 def expire_reservations(db: Session):
 
     expired_reservations = (
@@ -212,3 +250,78 @@ def expire_reservations(db: Session):
     db.commit()
 
     return len(expired_reservations)
+
+def force_release_by_user(db: Session, user_id: int):
+
+    reservation = (
+        db.query(Reservation)
+        .filter(
+            Reservation.user_id == user_id,
+            Reservation.status == "Active"
+        )
+        .first()
+    )
+
+    if not reservation:
+        raise HTTPException(
+            status_code=404,
+            detail="No active reservation found for this user"
+        )
+
+    locker = get_locker(db, reservation.locker_id)
+
+    reservation.status = "Finished"
+    locker.status = "Available"
+
+    log = AccessLog(
+        user_id=user_id,
+        locker_id=locker.locker_id,
+        action="Force Released"
+    )
+
+    db.add(log)
+    db.commit()
+
+    return {
+        "message": "Reservation force released successfully",
+        "user_id": user_id,
+        "locker_id": locker.locker_id
+    }
+
+
+def force_release_by_locker(db: Session, locker_id: int):
+
+    locker = get_locker(db, locker_id)
+
+    reservation = (
+        db.query(Reservation)
+        .filter(
+            Reservation.locker_id == locker_id,
+            Reservation.status == "Active"
+        )
+        .first()
+    )
+
+    if not reservation:
+        raise HTTPException(
+            status_code=404,
+            detail="No active reservation found for this locker"
+        )
+
+    reservation.status = "Finished"
+    locker.status = "Available"
+
+    log = AccessLog(
+        user_id=reservation.user_id,
+        locker_id=locker_id,
+        action="Force Released"
+    )
+
+    db.add(log)
+    db.commit()
+
+    return {
+        "message": "Reservation force released successfully",
+        "user_id": reservation.user_id,
+        "locker_id": locker_id
+    }

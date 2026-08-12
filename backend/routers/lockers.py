@@ -11,7 +11,11 @@ router = APIRouter(prefix="/lockers", tags=["Lockers"])
 
 @router.get("")
 def get_lockers(db: Session = Depends(get_db)):
-    return db.query(Locker).all()
+    return (
+        db.query(Locker)
+        .order_by(Locker.locker_id)
+        .all()
+    )
 
 @router.get("/{locker_id}")
 def get_locker_details(
