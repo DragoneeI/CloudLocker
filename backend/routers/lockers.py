@@ -90,7 +90,7 @@ def update_locker_status(
             detail="Locker not found"
         )
 
-    allowed_statuses = ["Available", "Reserved", "Offline"]
+    allowed_statuses = ["Available", "Offline"]
 
     if data.status not in allowed_statuses:
         raise HTTPException(

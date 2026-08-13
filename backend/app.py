@@ -19,7 +19,7 @@ app = FastAPI(title="CloudLocker API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://52.5.26.213:5173",
+        "https://cloud-locker-ten.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
