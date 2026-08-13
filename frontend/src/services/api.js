@@ -1,4 +1,4 @@
-const API_URL = "http://52.5.26.213:8000";
+const API_URL = "https://2p1fovsrld.execute-api.us-east-1.amazonaws.com";
 
 export async function getUsers() {
     const response = await fetch(`${API_URL}/users`);
