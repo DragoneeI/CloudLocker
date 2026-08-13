@@ -10,6 +10,16 @@ export async function getUsers() {
     return response.json();
 }
 
+export async function getUser(userId) {
+    const response = await fetch(`${API_URL}/users/${userId}`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch user");
+    }
+
+    return response.json();
+}
+
 export async function getLockers() {
     const response = await fetch(`${API_URL}/lockers`);
 
@@ -49,6 +59,25 @@ export async function updateLockerStatus(lockerId, status) {
 
         throw new Error(
             data.detail || "Failed to update locker status"
+        );
+    }
+
+    return response.json();
+}
+
+export async function openLocker(lockerId) {
+    const response = await fetch(
+        `${API_URL}/lockers/${lockerId}/open`,
+        {
+            method: "POST",
+        }
+    );
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+
+        throw new Error(
+            data.detail || "Failed to open locker"
         );
     }
 
@@ -153,21 +182,22 @@ export async function activateUser(userId) {
     return response.json();
 }
 
-async function handleUserClick(user) {
-    setSelectedUser(user);
-    setUserLocker(null);
-    setLoadingUser(true);
+export async function faceAccess(imageBlob) {
+    const formData = new FormData();
+    formData.append("file", imageBlob, "capture.jpg");
 
-    try {
-        const lockerData = await getUserLocker(user.user_id);
+    const response = await fetch(`${API_URL}/face/access`, {
+        method: "POST",
+        body: formData,
+    });
 
-        console.log("USER LOCKER RESPONSE:", lockerData);
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
 
-        setUserLocker(lockerData);
-    } catch (err) {
-        console.error("Failed to load user locker:", err);
-        setUserLocker(null);
-    } finally {
-        setLoadingUser(false);
+        throw new Error(
+            data.detail || "Face access failed"
+        );
     }
+
+    return response.json();
 }
