@@ -480,55 +480,7 @@ function Dashboard() {
 
                 </section>
 
-                <section className="dashboard-section">
 
-                    <div className="section-header">
-
-                        <div>
-                            <h2>System Summary</h2>
-
-                            <p>
-                                Current SmartLocker status
-                            </p>
-                        </div>
-
-                    </div>
-
-                    <div className="overview-summary">
-
-                        <div className="overview-summary-item">
-                            <span>
-                                Active Users
-                            </span>
-
-                            <strong>
-                                {activeUsers}
-                            </strong>
-                        </div>
-
-                        <div className="overview-summary-item">
-                            <span>
-                                Deactivated Users
-                            </span>
-
-                            <strong>
-                                {deactivatedUsers}
-                            </strong>
-                        </div>
-
-                        <div className="overview-summary-item">
-                            <span>
-                                Locker Availability
-                            </span>
-
-                            <strong>
-                                {availableLockers} / {lockers.length}
-                            </strong>
-                        </div>
-
-                    </div>
-
-                </section>
             </>
         );
     }
