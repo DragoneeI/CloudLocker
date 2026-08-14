@@ -623,6 +623,19 @@ async function handleCloseLocker() {
 
                                 )}
 
+                                {!loadingDetails && (
+
+                                    <div className="locker-door modal-door">
+                                        <div
+                                            className={`locker-door-panel ${
+                                                lockerDetails?.is_open ? "is-open" : ""
+                                            }`}
+                                        >
+                                            <div className="locker-handle">▪</div>
+                                        </div>
+                                    </div>
+
+                                )}
 
                                 {/* Open Locker */}
 
