@@ -1191,17 +1191,8 @@ function Dashboard() {
                         <div className="user-modal-info">
                             
                             <div className="info-item">
-
-                                <span>
-                                    Door
-                                </span>
-
-                                <strong>
-                                    {userLocker.is_open
-                                        ? "Open"
-                                        : "Closed"}
-                                </strong>
-
+                                <span>Door</span>
+                                <strong>{userLocker ? (userLocker.is_open ? "Open" : "Closed") : "N/A"}</strong>
                             </div>
 
                             <div className="info-item">
