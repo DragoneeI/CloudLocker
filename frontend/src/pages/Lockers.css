@@ -412,3 +412,37 @@
         transform: perspective(500px) rotateY(-55deg);
     }
 }
+
+/* ============================= */
+/* OPEN LOCKER EFFECT */
+/* ============================= */
+
+.locker.open {
+    border-color: #22c55e;
+    box-shadow:
+        0 15px 35px rgba(34, 197, 94, 0.25);
+}
+
+/* Locker door */
+
+.locker.open .locker-door {
+    transform: perspective(600px) rotateY(-65deg);
+    transform-origin: left center;
+    background: #d1d5db;
+    box-shadow:
+        10px 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Handle moves with the door */
+
+.locker.open .locker-handle {
+    opacity: 0;
+}
+
+/* Smooth animation */
+
+.locker-door {
+    transition:
+        transform 0.7s ease,
+        box-shadow 0.7s ease;
+}
