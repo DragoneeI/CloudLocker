@@ -4,8 +4,10 @@ import {
   getUser,
   getUserLocker,
   openLocker,
+  closeLocker,
   forceReleaseUser,
 } from "../services/api";
+
 import "./Kiosk.css";
 
 function Kiosk() {
@@ -23,7 +25,7 @@ function Kiosk() {
   const [endingReservation, setEndingReservation] = useState(false);
   const [cameraError, setCameraError] = useState("");
 
-  /*
+  /*handleOpenLocker
   ==================================================
   REFS
   ==================================================
@@ -192,47 +194,34 @@ function Kiosk() {
   OPEN LOCKER
   ==================================================
   */
-  async function handleOpenLocker() {
-    if (!locker || openingLocker) return;
+    async function handleOpenLocker() {
+      if (!locker || openingLocker) return;
 
-    setOpeningLocker(true);
-    setError("");
+      setOpeningLocker(true);
+      setError("");
 
-    try {
-      await openLocker(locker.locker_id);
-      setScreen("locker-opened");
-      // Automatically close after 5 seconds
-      setTimeout(async () => {
-          // CLOSE THE DOOR VISUALLY IMMEDIATELY
-          setDoorOpen(false);
+      try {
+          await openLocker(locker.locker_id);
+          setScreen("locker-opened");
 
-          try {
-              await closeLocker(
-                  selectedLocker.locker_id
-              );
-
-              await loadLockers();
-
-              const updatedDetails =
-                  await getLockerDetails(
-                      selectedLocker.locker_id
+          // Automatically close after 5 seconds
+          setTimeout(async () => {
+              try {
+                  await closeLocker(locker.locker_id);
+              } catch (err) {
+                  console.error(
+                      "Failed to automatically close locker:",
+                      err
                   );
+              }
+          }, 5000);
 
-              setLockerDetails(updatedDetails);
-
-          } catch (err) {
-              console.error(
-                  "Failed to automatically close locker:",
-                  err
-              );
-          }
-      }, 5000);
-    } catch (err) {
-      console.error("Open locker error:", err);
-      setError(err.message || "Unable to open locker.");
-    } finally {
-      setOpeningLocker(false);
-    }
+      } catch (err) {
+          console.error("Open locker error:", err);
+          setError(err.message || "Unable to open locker.");
+      } finally {
+          setOpeningLocker(false);
+      }
   }
 
   /*
@@ -304,6 +293,16 @@ function Kiosk() {
         });
     }
 }, [screen]);
+
+  useEffect(() => {
+      if (screen === "locker-opened" || screen === "reservation-ended") {
+          const timer = setTimeout(() => {
+              resetKiosk();
+          }, 6000); // slightly after the 5s auto-close, so the close has time to complete
+
+          return () => clearTimeout(timer);
+      }
+  }, [screen]);
 
   /*
   ==================================================
