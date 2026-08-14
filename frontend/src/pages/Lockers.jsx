@@ -61,6 +61,46 @@ function Lockers() {
         loadData();
     }, []);
 
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            try {
+                const data = await getLockers();
+
+                setLockers(currentLockers => {
+                    // Compare against currently DISPLAYED state
+                    // so we can detect a false -> true change per locker.
+                    setDisplayLockers(currentDisplay => {
+                        const changed = data.some(newLocker => {
+                            const oldLocker = currentDisplay.find(
+                                l => l.locker_id === newLocker.locker_id
+                            );
+                            return oldLocker && !oldLocker.is_open && newLocker.is_open;
+                        });
+
+                        if (changed) {
+                            // Force a visible transition: closed first, then open.
+                            const closedVersion = currentDisplay.map(l => {
+                                const updated = data.find(d => d.locker_id === l.locker_id);
+                                return updated ? { ...updated, is_open: l.is_open } : l;
+                            });
+
+                            setTimeout(() => setDisplayLockers(data), 50);
+                            return closedVersion;
+                        }
+
+                        return data;
+                    });
+
+                    return data;
+                });
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }, 3000); // check every 3 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
     async function handleLockerClick(locker) {
         setSelectedLocker(locker);
         setLockerDetails(null);
