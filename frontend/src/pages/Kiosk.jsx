@@ -44,40 +44,28 @@ function Kiosk() {
     setLocker(null);
 
     try {
-      if (
-        !navigator.mediaDevices ||
-        !navigator.mediaDevices.getUserMedia
-      ) {
-        throw new Error(
-          "Camera access is not supported by this browser."
-        );
-      }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Camera access is not supported by this browser.");
+        }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "user",
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            },
+            audio: false
+        });
 
-      streamRef.current = stream;
+        streamRef.current = stream;
+        setScreen("camera");
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      setScreen("camera");
     } catch (err) {
-      console.error("Camera error:", err);
-      setCameraError(
-        "Unable to access the camera. Please allow camera access."
-      );
-      setScreen("camera-error");
+        console.error("Camera error:", err);
+        setCameraError("Unable to access the camera. Please allow camera access.");
+        setScreen("camera-error");
     }
-  }
+}
 
   /*
   ==================================================
@@ -283,17 +271,13 @@ function Kiosk() {
   }, []);
 
   useEffect(() => {
-    if (
-      screen === "reservation-ended" ||
-      screen === "locker-opened"
-    ) {
-      const timer = setTimeout(() => {
-        resetKiosk();
-      }, 5000);
-
-      return () => clearTimeout(timer);
+    if (screen === "camera" && streamRef.current && videoRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(err => {
+            console.error("Video play error:", err);
+        });
     }
-  }, [screen]);
+}, [screen]);
 
   /*
   ==================================================
