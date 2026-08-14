@@ -59,7 +59,7 @@ def get_locker_details(
         "locker_id": locker.locker_id,
         "locker_name": locker.locker_name,
         "status": locker.status,
-        "is_open": locker.is_open
+        "is_open": locker.is_open,
         "user": {
             "user_id": user.user_id,
             "full_name": user.full_name,
