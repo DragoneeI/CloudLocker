@@ -77,40 +77,65 @@ function Lockers() {
             return;
         }
 
-        setControllingLocker(true);
+        setOpeningLocker(true);
+        setMessage("");
+        setError("");
+
+        // OPEN THE DOOR VISUALLY IMMEDIATELY
+        setDoorOpen(true);
 
         try {
             const result = await openLocker(
                 selectedLocker.locker_id
             );
 
-            alert(
+            setMessage(
                 result.message ||
-                `Locker #${selectedLocker.locker_id} opened successfully.`
+                `Locker #${selectedLocker.locker_id} opened`
             );
 
-            const [lockersData, details] = await Promise.all([
-                getLockers(),
-                getLockerDetails(selectedLocker.locker_id)
-            ]);
+            await loadLockers();
 
-            setLockers(lockersData);
+            const details = await getLockerDetails(
+                selectedLocker.locker_id
+            );
+
             setLockerDetails(details);
 
-            const updatedLocker = lockersData.find(
-                locker =>
-                    locker.locker_id ===
-                    selectedLocker.locker_id
-            );
+            // Automatically close after 5 seconds
+            setTimeout(async () => {
+                // CLOSE THE DOOR VISUALLY IMMEDIATELY
+                setDoorOpen(false);
 
-            setSelectedLocker(
-                updatedLocker || selectedLocker
-            );
+                try {
+                    await closeLocker(
+                        selectedLocker.locker_id
+                    );
+
+                    await loadLockers();
+
+                    const updatedDetails =
+                        await getLockerDetails(
+                            selectedLocker.locker_id
+                        );
+
+                    setLockerDetails(updatedDetails);
+
+                } catch (err) {
+                    console.error(
+                        "Failed to automatically close locker:",
+                        err
+                    );
+                }
+            }, 5000);
 
         } catch (err) {
-            alert(err.message);
+            // If opening failed, put the door back to closed
+            setDoorOpen(false);
+            setError(err.message);
+
         } finally {
-            setControllingLocker(false);
+            setOpeningLocker(false);
         }
     }
 
@@ -120,40 +145,38 @@ function Lockers() {
             return;
         }
 
-        setControllingLocker(true);
+        setOpeningLocker(true);
+        setMessage("");
+        setError("");
+
+        // CLOSE THE DOOR VISUALLY IMMEDIATELY
+        setDoorOpen(false);
 
         try {
             const result = await closeLocker(
                 selectedLocker.locker_id
             );
 
-            alert(
+            setMessage(
                 result.message ||
-                `Locker #${selectedLocker.locker_id} closed successfully.`
+                `Locker #${selectedLocker.locker_id} closed`
             );
 
-            const [lockersData, details] = await Promise.all([
-                getLockers(),
-                getLockerDetails(selectedLocker.locker_id)
-            ]);
+            await loadLockers();
 
-            setLockers(lockersData);
+            const details = await getLockerDetails(
+                selectedLocker.locker_id
+            );
+
             setLockerDetails(details);
 
-            const updatedLocker = lockersData.find(
-                locker =>
-                    locker.locker_id ===
-                    selectedLocker.locker_id
-            );
-
-            setSelectedLocker(
-                updatedLocker || selectedLocker
-            );
-
         } catch (err) {
-            alert(err.message);
+            // If closing failed, put it back to open
+            setDoorOpen(true);
+            setError(err.message);
+
         } finally {
-            setControllingLocker(false);
+            setOpeningLocker(false);
         }
     }
 
