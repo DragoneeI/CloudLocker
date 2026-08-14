@@ -229,3 +229,45 @@ export async function closeLocker(lockerId) {
 
     return response.json();
 }
+
+export async function createReservation(payload) {
+    const response = await fetch(`${API_URL}/reservations/manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to create reservation";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function createAutoReservation(payload) {
+    const response = await fetch(`${API_URL}/reservations/auto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to create reservation";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
