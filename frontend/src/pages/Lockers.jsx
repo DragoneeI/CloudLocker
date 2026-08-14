@@ -3,7 +3,7 @@ import {
     getLockers,
     getLockerDetails,
     openLocker,
-    releaseLocker
+    closeLocker
 } from "../services/api";
 
 import "./Lockers.css";
@@ -15,14 +15,18 @@ function Lockers() {
 
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const [opening, setOpening] = useState(false);
-    const [releasing, setReleasing] = useState(false);
+    const [openingLocker, setOpeningLocker] = useState(false);
+    const [doorOpen, setDoorOpen] = useState(false);
 
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
 
     async function loadLockers() {
         try {
+            setError("");
+
             const data = await getLockers();
+
             setLockers(data);
         } catch (err) {
             setError(err.message);
@@ -30,27 +34,39 @@ function Lockers() {
     }
 
     useEffect(() => {
-        async function load() {
-            await loadLockers();
-            setLoading(false);
+        async function loadData() {
+            try {
+                await loadLockers();
+            } finally {
+                setLoading(false);
+            }
         }
 
-        load();
+        loadData();
     }, []);
 
     async function handleLockerClick(locker) {
         setSelectedLocker(locker);
         setLockerDetails(null);
+
+        // Set initial door state
+        setDoorOpen(Boolean(locker.is_open));
+
+        setMessage("");
         setLoadingDetails(true);
 
         try {
-            const details = await getLockerDetails(
+            const data = await getLockerDetails(
                 locker.locker_id
             );
 
-            setLockerDetails(details);
+            setLockerDetails(data);
+
+            // Make sure animation state matches backend
+            setDoorOpen(Boolean(data.is_open));
+
         } catch (err) {
-            alert(err.message);
+            setError(err.message);
         } finally {
             setLoadingDetails(false);
         }
@@ -61,128 +77,224 @@ function Lockers() {
             return;
         }
 
-        setOpening(true);
+        setControllingLocker(true);
 
         try {
-            await openLocker(selectedLocker.locker_id);
-
-            alert(
-                `Locker #${selectedLocker.locker_id} opened.`
+            const result = await openLocker(
+                selectedLocker.locker_id
             );
 
-            await refreshSelectedLocker();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            setOpening(false);
-        }
-    }
+            alert(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} opened successfully.`
+            );
 
-    async function handleReleaseLocker() {
-        if (!selectedLocker) {
-            return;
-        }
+            const [lockersData, details] = await Promise.all([
+                getLockers(),
+                getLockerDetails(selectedLocker.locker_id)
+            ]);
 
-        const confirmed = window.confirm(
-            `End the reservation for locker #${selectedLocker.locker_id}?`
-        );
+            setLockers(lockersData);
+            setLockerDetails(details);
 
-        if (!confirmed) {
-            return;
-        }
-
-        setReleasing(true);
-
-        try {
-            await releaseLocker(selectedLocker.locker_id);
-
-            alert("Reservation ended successfully.");
-
-            await refreshSelectedLocker();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            setReleasing(false);
-        }
-    }
-
-    async function refreshSelectedLocker() {
-        await loadLockers();
-
-        if (!selectedLocker) {
-            return;
-        }
-
-        const updatedLocker = await getLockerDetails(
-            selectedLocker.locker_id
-        );
-
-        setLockerDetails(updatedLocker);
-
-        setSelectedLocker(
-            lockers.find(
+            const updatedLocker = lockersData.find(
                 locker =>
                     locker.locker_id ===
                     selectedLocker.locker_id
-            ) || selectedLocker
-        );
+            );
+
+            setSelectedLocker(
+                updatedLocker || selectedLocker
+            );
+
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setControllingLocker(false);
+        }
+    }
+
+
+    async function handleCloseLocker() {
+        if (!selectedLocker) {
+            return;
+        }
+
+        setControllingLocker(true);
+
+        try {
+            const result = await closeLocker(
+                selectedLocker.locker_id
+            );
+
+            alert(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} closed successfully.`
+            );
+
+            const [lockersData, details] = await Promise.all([
+                getLockers(),
+                getLockerDetails(selectedLocker.locker_id)
+            ]);
+
+            setLockers(lockersData);
+            setLockerDetails(details);
+
+            const updatedLocker = lockersData.find(
+                locker =>
+                    locker.locker_id ===
+                    selectedLocker.locker_id
+            );
+
+            setSelectedLocker(
+                updatedLocker || selectedLocker
+            );
+
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setControllingLocker(false);
+        }
     }
 
     function closeModal() {
-        if (opening || releasing) {
+        if (openingLocker) {
             return;
         }
 
         setSelectedLocker(null);
         setLockerDetails(null);
+        setMessage("");
+        setError("");
     }
 
     if (loading) {
         return (
-            <div className="lockers-message">
-                Loading  lockers...
+            <div className="lockers-page">
+                <div className="message">
+                    Loading lockers...
+                </div>
             </div>
         );
     }
 
-    if (error) {
-        return (
-            <div className="lockers-message error">
-                Error: {error}
-            </div>
-        );
-    }
+    const availableCount = lockers.filter(
+        locker => locker.status === "Available"
+    ).length;
+
+    const reservedCount = lockers.filter(
+        locker => locker.status === "Reserved"
+    ).length;
+
+    const offlineCount = lockers.filter(
+        locker => locker.status === "Offline"
+    ).length;
+
+    const sortedLockers = [...lockers].sort(
+        (a, b) => a.locker_id - b.locker_id
+    );
 
     return (
-        <div className="lockers">
+        <div className="lockers-page">
 
-            <header className="lockers-header">
+            {/* Header */}
+
+            <header className="header">
 
                 <div>
-                    <h1> Lockers</h1>
+                    <h1>Lockers</h1>
 
                     <p>
-                        Simulated locker system
+                        Representation of the
+                        SmartLocker system
                     </p>
-                </div>
-
-                <div className="status">
-                    <span className="status-dot"></span>
-                    System Online
                 </div>
 
             </header>
 
+
+            {/* Summary */}
+
+            <section className="summary">
+
+                <div className="summary-card">
+
+                    <span>
+                        Total
+                    </span>
+
+                    <strong>
+                        {lockers.length}
+                    </strong>
+
+                </div>
+
+
+                <div className="summary-card available">
+
+                    <span>
+                        Available
+                    </span>
+
+                    <strong>
+                        {availableCount}
+                    </strong>
+
+                </div>
+
+
+                <div className="summary-card reserved">
+
+                    <span>
+                        Reserved
+                    </span>
+
+                    <strong>
+                        {reservedCount}
+                    </strong>
+
+                </div>
+
+
+                <div className="summary-card offline">
+
+                    <span>
+                        Offline
+                    </span>
+
+                    <strong>
+                        {offlineCount}
+                    </strong>
+
+                </div>
+
+            </section>
+
+
+            {/* Error */}
+
+            {error && (
+
+                <div className="error">
+                    {error}
+                </div>
+
+            )}
+
+
+            {/* Locker Grid */}
 
             <section className="locker-section">
 
                 <div className="section-header">
 
                     <div>
-                        <h2>Locker System</h2>
+                        <h2>
+                            Locker System
+                        </h2>
 
                         <p>
-                            Click a locker to interact with it.
+                            Select a locker to interact with it
                         </p>
                     </div>
 
@@ -191,23 +303,42 @@ function Lockers() {
 
                 <div className="locker-grid">
 
-                    {lockers.map(locker => (
+                    {sortedLockers.map(locker => (
 
                         <button
                             key={locker.locker_id}
-                            className={`locker ${locker.status.toLowerCase()}`}
+                            className={`locker ${locker.status.toLowerCase()} ${
+                                locker.is_open ? "opened" : ""
+                            }`}
+                            
                             onClick={() =>
                                 handleLockerClick(locker)
                             }
                         >
 
-                            <div className="locker-number">
-                                #{locker.locker_id}
+                            <div className="locker-top">
+
+                                <span className="locker-number">
+                                    #{locker.locker_id}
+                                </span>
+
+                                <span className="locker-status">
+                                    {locker.status}
+                                </span>
+
                             </div>
 
 
-                            <div className="locker-icon">
-                                🔐
+                            <div className="locker-door">
+                                <div
+                                    className={`locker-door-panel ${
+                                        locker.is_open ? "is-open" : ""
+                                    }`}
+                                >
+                                    <div className="locker-handle">
+                                        ▪
+                                    </div>
+                                </div>
                             </div>
 
 
@@ -216,8 +347,8 @@ function Lockers() {
                             </h3>
 
 
-                            <span className="locker-status">
-                                {locker.status}
+                            <span className="locker-action">
+                                View Locker
                             </span>
 
                         </button>
@@ -228,6 +359,8 @@ function Lockers() {
 
             </section>
 
+
+            {/* Locker Modal */}
 
             {selectedLocker && (
 
@@ -242,6 +375,8 @@ function Lockers() {
                             event.stopPropagation()
                         }
                     >
+
+                        {/* Modal Header */}
 
                         <div className="modal-header">
 
@@ -260,7 +395,7 @@ function Lockers() {
 
 
                             <button
-                                className="close"
+                                className="modal-close"
                                 onClick={closeModal}
                             >
                                 ×
@@ -269,28 +404,51 @@ function Lockers() {
                         </div>
 
 
+                        {/* Status */}
+
+                        <div className="modal-status">
+
+                            <span
+                                className={`status ${selectedLocker.status.toLowerCase()}`}
+                            >
+                                {selectedLocker.status}
+                            </span>
+
+                        </div>
+
+
                         {loadingDetails ? (
 
                             <div className="loading">
-                                Loading locker...
+                                Loading locker details...
                             </div>
 
                         ) : (
 
                             <>
 
-                                <div className="info">
+                                {/* Locker Information */}
+
+                                <div className="info-grid">
 
                                     <div>
                                         <span>
-                                            Locker
+                                            Locker ID
                                         </span>
 
                                         <strong>
-                                            #
-                                            {
-                                                selectedLocker.locker_id
-                                            }
+                                            #{selectedLocker.locker_id}
+                                        </strong>
+                                    </div>
+
+
+                                    <div>
+                                        <span>
+                                            Name
+                                        </span>
+
+                                        <strong>
+                                            {selectedLocker.locker_name}
                                         </strong>
                                     </div>
 
@@ -301,41 +459,73 @@ function Lockers() {
                                         </span>
 
                                         <strong>
-                                            {
-                                                lockerDetails?.status ||
-                                                selectedLocker.status
-                                            }
+                                            {selectedLocker.status}
                                         </strong>
                                     </div>
 
                                 </div>
 
 
+                                {/* Assigned User */}
+
                                 {lockerDetails?.user && (
 
                                     <div className="reservation">
 
                                         <h3>
-                                            Reserved By
+                                            Assigned User
                                         </h3>
 
-                                        <p>
-                                            {
-                                                lockerDetails.user.full_name
-                                            }
-                                        </p>
+                                        <div className="details">
 
-                                        <span>
-                                            User ID #
-                                            {
-                                                lockerDetails.user.user_id
-                                            }
-                                        </span>
+                                            <div>
+                                                <span>
+                                                    Name
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        lockerDetails.user.full_name
+                                                    }
+                                                </strong>
+                                            </div>
+
+
+                                            <div>
+                                                <span>
+                                                    User ID
+                                                </span>
+
+                                                <strong>
+                                                    #
+                                                    {
+                                                        lockerDetails.user.user_id
+                                                    }
+                                                </strong>
+                                            </div>
+
+
+                                            <div>
+                                                <span>
+                                                    Email
+                                                </span>
+
+                                                <strong>
+                                                    {
+                                                        lockerDetails.user.email ||
+                                                        "Not available"
+                                                    }
+                                                </strong>
+                                            </div>
+
+                                        </div>
 
                                     </div>
 
                                 )}
 
+
+                                {/* Reservation */}
 
                                 {lockerDetails?.reservation && (
 
@@ -345,36 +535,67 @@ function Lockers() {
                                             Reservation
                                         </h3>
 
-                                        <div>
+                                        <div className="details">
 
-                                            <span>
-                                                Reservation ID
-                                            </span>
+                                            <div>
+                                                <span>
+                                                    Reservation ID
+                                                </span>
 
-                                            <strong>
-                                                #
-                                                {
-                                                    lockerDetails
-                                                        .reservation
-                                                        .reservation_id
-                                                }
-                                            </strong>
+                                                <strong>
+                                                    #
+                                                    {
+                                                        lockerDetails.reservation.reservation_id
+                                                    }
+                                                </strong>
+                                            </div>
 
-                                        </div>
 
-                                        <div>
+                                            <div>
+                                                <span>
+                                                    Status
+                                                </span>
 
-                                            <span>
-                                                Status
-                                            </span>
+                                                <strong>
+                                                    {
+                                                        lockerDetails.reservation.status
+                                                    }
+                                                </strong>
+                                            </div>
 
-                                            <strong>
-                                                {
-                                                    lockerDetails
-                                                        .reservation
-                                                        .status
-                                                }
-                                            </strong>
+
+                                            {lockerDetails.reservation.start_time && (
+
+                                                <div>
+                                                    <span>
+                                                        Start
+                                                    </span>
+
+                                                    <strong>
+                                                        {new Date(
+                                                            lockerDetails.reservation.start_time
+                                                        ).toLocaleString()}
+                                                    </strong>
+                                                </div>
+
+                                            )}
+
+
+                                            {lockerDetails.reservation.end_time && (
+
+                                                <div>
+                                                    <span>
+                                                        End
+                                                    </span>
+
+                                                    <strong>
+                                                        {new Date(
+                                                            lockerDetails.reservation.end_time
+                                                        ).toLocaleString()}
+                                                    </strong>
+                                                </div>
+
+                                            )}
 
                                         </div>
 
@@ -383,46 +604,75 @@ function Lockers() {
                                 )}
 
 
-                                <div className="actions">
+                                {/* Message */}
 
-                                    <button
+                                {message && (
+
+                                    <div className="success">
+                                        {message}
+                                    </div>
+
+                                )}
+
+
+                                {/* Error */}
+
+                                {error && (
+
+                                    <div className="error">
+                                        {error}
+                                    </div>
+
+                                )}
+
+                                {!loadingDetails && (
+
+                                    <div className="locker-door modal-door">
+                                        <div
+                                            className={`locker-door-panel ${
+                                                doorOpen ? "is-open" : ""
+                                            }`}
+                                        >
+                                            <div className="locker-handle">
+                                                ▪
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                )}
+
+                                {/* Open Locker */}
+
+                                <div className="controls">
+
+                                    <h3>
+                                        Locker Controls
+                                    </h3>
+
+                                    <p>
+                                        Send an open request to
+                                        this locker.
+                                    </p>
+
+
+                                   <button
                                         className="open-locker-button"
                                         onClick={
-                                            handleOpenLocker
+                                            lockerDetails?.is_open
+                                                ? handleCloseLocker
+                                                : handleOpenLocker
                                         }
                                         disabled={
-                                            opening ||
-                                            selectedLocker.status ===
-                                                "Offline"
+                                            openingLocker ||
+                                            selectedLocker.status === "Offline"
                                         }
                                     >
-
-                                        {opening
-                                            ? "Opening..."
-                                            : "🔓 Open Locker"}
-
+                                        {openingLocker
+                                            ? "Processing..."
+                                            : lockerDetails?.is_open
+                                                ? "🔒 Close Locker"
+                                                : "🔓 Open Locker"}
                                     </button>
-
-
-                                    {lockerDetails?.reservation && (
-
-                                        <button
-                                            className="release-locker-button"
-                                            onClick={
-                                                handleReleaseLocker
-                                            }
-                                            disabled={
-                                                releasing
-                                            }
-                                        >
-
-                                            {releasing
-                                                ? "Ending..."
-                                                : "End Reservation"}
-
-                                        </button>
-
-                                    )}
 
                                 </div>
 

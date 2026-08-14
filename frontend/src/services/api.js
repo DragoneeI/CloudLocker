@@ -78,16 +78,13 @@ export async function openLocker(lockerId) {
     const response = await fetch(
         `${API_URL}/lockers/${lockerId}/open`,
         {
-            method: "POST",
+            method: "POST"
         }
     );
 
     if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-
-        throw new Error(
-            data.detail || "Failed to open locker"
-        );
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to open locker");
     }
 
     return response.json();
@@ -221,16 +218,13 @@ export async function closeLocker(lockerId) {
     const response = await fetch(
         `${API_URL}/lockers/${lockerId}/close`,
         {
-            method: "POST",
+            method: "POST"
         }
     );
 
     if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-
-        throw new Error(
-            data.detail || "Failed to close locker"
-        );
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to close locker");
     }
 
     return response.json();
