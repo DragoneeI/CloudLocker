@@ -1598,6 +1598,20 @@ function Dashboard() {
                                         Control the locker door or change its system status.
                                     </p>
 
+                                    {!loadingLocker && (
+
+                                        <div className="locker-door modal-door">
+                                            <div
+                                                className={`locker-door-panel ${
+                                                    selectedLocker.is_open ? "is-open" : ""
+                                                }`}
+                                            >
+                                                <div className="locker-handle">▪</div>
+                                            </div>
+                                        </div>
+
+                                    )}
+
                                     <div className="locker-door-buttons">
 
                                         <button
