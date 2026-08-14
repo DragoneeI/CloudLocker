@@ -7,7 +7,9 @@ import {
     forceReleaseUser,
     getLockerDetails,
     updateLockerStatus,
-    releaseLocker
+    releaseLocker,
+    openLocker,
+    closeLocker
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -33,6 +35,7 @@ function Dashboard() {
     const [lockerDetails, setLockerDetails] = useState(null);
     const [loadingLocker, setLoadingLocker] = useState(false);
     const [updatingLocker, setUpdatingLocker] = useState(false);
+    const [controllingLocker, setControllingLocker] = useState(false);
 
     /*
      * =========================
@@ -196,6 +199,126 @@ function Dashboard() {
         }
     }
 
+    async function handleOpenLocker() {
+        if (!selectedLocker) {
+            return;
+        }
+
+        setControllingLocker(true);
+
+        try {
+            const result = await openLocker(
+                selectedLocker.locker_id
+            );
+
+            alert(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} opened successfully.`
+            );
+
+            const [lockersData, details] = await Promise.all([
+                getLockers(),
+                getLockerDetails(selectedLocker.locker_id)
+            ]);
+
+            setLockers(lockersData);
+            setLockerDetails(details);
+
+            const updatedLocker = lockersData.find(
+                locker =>
+                    locker.locker_id ===
+                    selectedLocker.locker_id
+            );
+
+            setSelectedLocker(
+                updatedLocker || selectedLocker
+            );
+
+            // Automatically close after 5 seconds
+            setTimeout(async () => {
+                try {
+                    await closeLocker(
+                        selectedLocker.locker_id
+                    );
+
+                    const [updatedLockers, updatedDetails] =
+                        await Promise.all([
+                            getLockers(),
+                            getLockerDetails(
+                                selectedLocker.locker_id
+                            )
+                        ]);
+
+                    setLockers(updatedLockers);
+                    setLockerDetails(updatedDetails);
+
+                    const closedLocker = updatedLockers.find(
+                        locker =>
+                            locker.locker_id ===
+                            selectedLocker.locker_id
+                    );
+
+                    setSelectedLocker(
+                        closedLocker || selectedLocker
+                    );
+
+                } catch (err) {
+                    console.error(
+                        "Failed to automatically close locker:",
+                        err
+                    );
+                }
+            }, 5000);
+
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setControllingLocker(false);
+        }
+    }
+
+    async function handleCloseLocker() {
+        if (!selectedLocker) {
+            return;
+        }
+
+        setControllingLocker(true);
+
+        try {
+            const result = await closeLocker(
+                selectedLocker.locker_id
+            );
+
+            alert(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} closed successfully.`
+            );
+
+            const [lockersData, details] = await Promise.all([
+                getLockers(),
+                getLockerDetails(selectedLocker.locker_id)
+            ]);
+
+            setLockers(lockersData);
+            setLockerDetails(details);
+
+            const updatedLocker = lockersData.find(
+                locker =>
+                    locker.locker_id ===
+                    selectedLocker.locker_id
+            );
+
+            setSelectedLocker(
+                updatedLocker || selectedLocker
+            );
+
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setControllingLocker(false);
+        }
+    }
+
     async function handleLockerStatusChange(status) {
         if (!selectedLocker) {
             return;
@@ -340,7 +463,7 @@ function Dashboard() {
     }
 
     function closeLockerModal() {
-        if (updatingLocker) {
+        if (updatingLocker || controllingLocker) {
             return;
         }
 
@@ -1066,6 +1189,20 @@ function Dashboard() {
                         </div>
 
                         <div className="user-modal-info">
+                            
+                            <div className="info-item">
+
+                                <span>
+                                    Door
+                                </span>
+
+                                <strong>
+                                    {userLocker.is_open
+                                        ? "Open"
+                                        : "Closed"}
+                                </strong>
+
+                            </div>
 
                             <div className="info-item">
 
@@ -1467,10 +1604,35 @@ function Dashboard() {
                                     </h3>
 
                                     <p>
-                                        Available and Offline
-                                        are the only manual
-                                        locker statuses.
+                                        Control the locker door or change its system status.
                                     </p>
+
+                                    <div className="locker-door-buttons">
+
+                                        <button
+                                            className="locker-door-button open"
+                                            onClick={handleOpenLocker}
+                                            disabled={
+                                                controllingLocker ||
+                                                selectedLocker.status !== "Reserved"
+                                            }
+                                        >
+                                            {controllingLocker
+                                                ? "Processing..."
+                                                : "🔓 Open Locker"}
+                                        </button>
+
+                                        <button
+                                            className="locker-door-button close"
+                                            onClick={handleCloseLocker}
+                                            disabled={controllingLocker}
+                                        >
+                                            {controllingLocker
+                                                ? "Processing..."
+                                                : "🔒 Close Locker"}
+                                        </button>
+
+                                    </div>
 
                                     <div className="locker-status-buttons">
 
