@@ -3,7 +3,7 @@ import {
     getLockers,
     getLockerDetails,
     openLocker,
-    closeLocker
+    releaseLocker
 } from "../services/api";
 
 import "./Lockers.css";
@@ -15,18 +15,14 @@ function Lockers() {
 
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
-    const [openingLocker, setOpeningLocker] = useState(false);
-    const [doorOpen, setDoorOpen] = useState(false);
+    const [opening, setOpening] = useState(false);
+    const [releasing, setReleasing] = useState(false);
 
     const [error, setError] = useState("");
-    const [message, setMessage] = useState("");
 
     async function loadLockers() {
         try {
-            setError("");
-
             const data = await getLockers();
-
             setLockers(data);
         } catch (err) {
             setError(err.message);
@@ -34,39 +30,27 @@ function Lockers() {
     }
 
     useEffect(() => {
-        async function loadData() {
-            try {
-                await loadLockers();
-            } finally {
-                setLoading(false);
-            }
+        async function load() {
+            await loadLockers();
+            setLoading(false);
         }
 
-        loadData();
+        load();
     }, []);
 
     async function handleLockerClick(locker) {
         setSelectedLocker(locker);
         setLockerDetails(null);
-
-        // Set initial door state
-        setDoorOpen(Boolean(locker.is_open));
-
-        setMessage("");
         setLoadingDetails(true);
 
         try {
-            const data = await getLockerDetails(
+            const details = await getLockerDetails(
                 locker.locker_id
             );
 
-            setLockerDetails(data);
-
-            // Make sure animation state matches backend
-            setDoorOpen(Boolean(data.is_open));
-
+            setLockerDetails(details);
         } catch (err) {
-            setError(err.message);
+            alert(err.message);
         } finally {
             setLoadingDetails(false);
         }
@@ -77,247 +61,128 @@ function Lockers() {
             return;
         }
 
-        setOpeningLocker(true);
-        setMessage("");
-        setError("");
-
-        // OPEN THE DOOR VISUALLY IMMEDIATELY
-        setDoorOpen(true);
+        setOpening(true);
 
         try {
-            const result = await openLocker(
-                selectedLocker.locker_id
+            await openLocker(selectedLocker.locker_id);
+
+            alert(
+                `Locker #${selectedLocker.locker_id} opened.`
             );
 
-            setMessage(
-                result.message ||
-                `Locker #${selectedLocker.locker_id} opened`
-            );
-
-            await loadLockers();
-
-            const details = await getLockerDetails(
-                selectedLocker.locker_id
-            );
-
-            setLockerDetails(details);
-
-            // Automatically close after 5 seconds
-            setTimeout(async () => {
-                // CLOSE THE DOOR VISUALLY IMMEDIATELY
-                setDoorOpen(false);
-
-                try {
-                    await closeLocker(
-                        selectedLocker.locker_id
-                    );
-
-                    await loadLockers();
-
-                    const updatedDetails =
-                        await getLockerDetails(
-                            selectedLocker.locker_id
-                        );
-
-                    setLockerDetails(updatedDetails);
-
-                } catch (err) {
-                    console.error(
-                        "Failed to automatically close locker:",
-                        err
-                    );
-                }
-            }, 5000);
-
+            await refreshSelectedLocker();
         } catch (err) {
-            // If opening failed, put the door back to closed
-            setDoorOpen(false);
-            setError(err.message);
-
+            alert(err.message);
         } finally {
-            setOpeningLocker(false);
+            setOpening(false);
         }
     }
 
-
-    async function handleCloseLocker() {
+    async function handleReleaseLocker() {
         if (!selectedLocker) {
             return;
         }
 
-        setOpeningLocker(true);
-        setMessage("");
-        setError("");
+        const confirmed = window.confirm(
+            `End the reservation for locker #${selectedLocker.locker_id}?`
+        );
 
-        // CLOSE THE DOOR VISUALLY IMMEDIATELY
-        setDoorOpen(false);
+        if (!confirmed) {
+            return;
+        }
+
+        setReleasing(true);
 
         try {
-            const result = await closeLocker(
-                selectedLocker.locker_id
-            );
+            await releaseLocker(selectedLocker.locker_id);
 
-            setMessage(
-                result.message ||
-                `Locker #${selectedLocker.locker_id} closed`
-            );
+            alert("Reservation ended successfully.");
 
-            await loadLockers();
-
-            const details = await getLockerDetails(
-                selectedLocker.locker_id
-            );
-
-            setLockerDetails(details);
-
+            await refreshSelectedLocker();
         } catch (err) {
-            // If closing failed, put it back to open
-            setDoorOpen(true);
-            setError(err.message);
-
+            alert(err.message);
         } finally {
-            setOpeningLocker(false);
+            setReleasing(false);
         }
     }
 
+    async function refreshSelectedLocker() {
+        await loadLockers();
+
+        if (!selectedLocker) {
+            return;
+        }
+
+        const updatedLocker = await getLockerDetails(
+            selectedLocker.locker_id
+        );
+
+        setLockerDetails(updatedLocker);
+
+        setSelectedLocker(
+            lockers.find(
+                locker =>
+                    locker.locker_id ===
+                    selectedLocker.locker_id
+            ) || selectedLocker
+        );
+    }
+
     function closeModal() {
-        if (openingLocker) {
+        if (opening || releasing) {
             return;
         }
 
         setSelectedLocker(null);
         setLockerDetails(null);
-        setMessage("");
-        setError("");
     }
 
     if (loading) {
         return (
-            <div className="lockers-page">
-                <div className="message">
-                    Loading lockers...
-                </div>
+            <div className="lockers-message">
+                Loading  lockers...
             </div>
         );
     }
 
-    const availableCount = lockers.filter(
-        locker => locker.status === "Available"
-    ).length;
-
-    const reservedCount = lockers.filter(
-        locker => locker.status === "Reserved"
-    ).length;
-
-    const offlineCount = lockers.filter(
-        locker => locker.status === "Offline"
-    ).length;
-
-    const sortedLockers = [...lockers].sort(
-        (a, b) => a.locker_id - b.locker_id
-    );
+    if (error) {
+        return (
+            <div className="lockers-message error">
+                Error: {error}
+            </div>
+        );
+    }
 
     return (
-        <div className="lockers-page">
+        <div className="lockers">
 
-            {/* Header */}
-
-            <header className="header">
+            <header className="lockers-header">
 
                 <div>
-                    <h1>Lockers</h1>
+                    <h1> Lockers</h1>
 
                     <p>
-                        Representation of the
-                        SmartLocker system
+                        Simulated locker system
                     </p>
+                </div>
+
+                <div className="status">
+                    <span className="status-dot"></span>
+                    System Online
                 </div>
 
             </header>
 
-
-            {/* Summary */}
-
-            <section className="summary">
-
-                <div className="summary-card">
-
-                    <span>
-                        Total
-                    </span>
-
-                    <strong>
-                        {lockers.length}
-                    </strong>
-
-                </div>
-
-
-                <div className="summary-card available">
-
-                    <span>
-                        Available
-                    </span>
-
-                    <strong>
-                        {availableCount}
-                    </strong>
-
-                </div>
-
-
-                <div className="summary-card reserved">
-
-                    <span>
-                        Reserved
-                    </span>
-
-                    <strong>
-                        {reservedCount}
-                    </strong>
-
-                </div>
-
-
-                <div className="summary-card offline">
-
-                    <span>
-                        Offline
-                    </span>
-
-                    <strong>
-                        {offlineCount}
-                    </strong>
-
-                </div>
-
-            </section>
-
-
-            {/* Error */}
-
-            {error && (
-
-                <div className="error">
-                    {error}
-                </div>
-
-            )}
-
-
-            {/* Locker Grid */}
 
             <section className="locker-section">
 
                 <div className="section-header">
 
                     <div>
-                        <h2>
-                            Locker System
-                        </h2>
+                        <h2>Locker System</h2>
 
                         <p>
-                            Select a locker to interact with it
+                            Click a locker to interact with it.
                         </p>
                     </div>
 
@@ -326,42 +191,23 @@ function Lockers() {
 
                 <div className="locker-grid">
 
-                    {sortedLockers.map(locker => (
+                    {lockers.map(locker => (
 
                         <button
                             key={locker.locker_id}
-                            className={`locker ${locker.status.toLowerCase()} ${
-                                locker.is_open ? "opened" : ""
-                            }`}
-                            
+                            className={`locker ${locker.status.toLowerCase()}`}
                             onClick={() =>
                                 handleLockerClick(locker)
                             }
                         >
 
-                            <div className="locker-top">
-
-                                <span className="locker-number">
-                                    #{locker.locker_id}
-                                </span>
-
-                                <span className="locker-status">
-                                    {locker.status}
-                                </span>
-
+                            <div className="locker-number">
+                                #{locker.locker_id}
                             </div>
 
 
-                            <div className="locker-door">
-                                <div
-                                    className={`locker-door-panel ${
-                                        locker.is_open ? "is-open" : ""
-                                    }`}
-                                >
-                                    <div className="locker-handle">
-                                        ▪
-                                    </div>
-                                </div>
+                            <div className="locker-icon">
+                                🔐
                             </div>
 
 
@@ -370,8 +216,8 @@ function Lockers() {
                             </h3>
 
 
-                            <span className="locker-action">
-                                View Locker
+                            <span className="locker-status">
+                                {locker.status}
                             </span>
 
                         </button>
@@ -382,8 +228,6 @@ function Lockers() {
 
             </section>
 
-
-            {/* Locker Modal */}
 
             {selectedLocker && (
 
@@ -398,8 +242,6 @@ function Lockers() {
                             event.stopPropagation()
                         }
                     >
-
-                        {/* Modal Header */}
 
                         <div className="modal-header">
 
@@ -418,7 +260,7 @@ function Lockers() {
 
 
                             <button
-                                className="modal-close"
+                                className="close"
                                 onClick={closeModal}
                             >
                                 ×
@@ -427,51 +269,28 @@ function Lockers() {
                         </div>
 
 
-                        {/* Status */}
-
-                        <div className="modal-status">
-
-                            <span
-                                className={`status ${selectedLocker.status.toLowerCase()}`}
-                            >
-                                {selectedLocker.status}
-                            </span>
-
-                        </div>
-
-
                         {loadingDetails ? (
 
                             <div className="loading">
-                                Loading locker details...
+                                Loading locker...
                             </div>
 
                         ) : (
 
                             <>
 
-                                {/* Locker Information */}
-
-                                <div className="info-grid">
+                                <div className="info">
 
                                     <div>
                                         <span>
-                                            Locker ID
+                                            Locker
                                         </span>
 
                                         <strong>
-                                            #{selectedLocker.locker_id}
-                                        </strong>
-                                    </div>
-
-
-                                    <div>
-                                        <span>
-                                            Name
-                                        </span>
-
-                                        <strong>
-                                            {selectedLocker.locker_name}
+                                            #
+                                            {
+                                                selectedLocker.locker_id
+                                            }
                                         </strong>
                                     </div>
 
@@ -482,73 +301,41 @@ function Lockers() {
                                         </span>
 
                                         <strong>
-                                            {selectedLocker.status}
+                                            {
+                                                lockerDetails?.status ||
+                                                selectedLocker.status
+                                            }
                                         </strong>
                                     </div>
 
                                 </div>
 
 
-                                {/* Assigned User */}
-
                                 {lockerDetails?.user && (
 
                                     <div className="reservation">
 
                                         <h3>
-                                            Assigned User
+                                            Reserved By
                                         </h3>
 
-                                        <div className="details">
+                                        <p>
+                                            {
+                                                lockerDetails.user.full_name
+                                            }
+                                        </p>
 
-                                            <div>
-                                                <span>
-                                                    Name
-                                                </span>
-
-                                                <strong>
-                                                    {
-                                                        lockerDetails.user.full_name
-                                                    }
-                                                </strong>
-                                            </div>
-
-
-                                            <div>
-                                                <span>
-                                                    User ID
-                                                </span>
-
-                                                <strong>
-                                                    #
-                                                    {
-                                                        lockerDetails.user.user_id
-                                                    }
-                                                </strong>
-                                            </div>
-
-
-                                            <div>
-                                                <span>
-                                                    Email
-                                                </span>
-
-                                                <strong>
-                                                    {
-                                                        lockerDetails.user.email ||
-                                                        "Not available"
-                                                    }
-                                                </strong>
-                                            </div>
-
-                                        </div>
+                                        <span>
+                                            User ID #
+                                            {
+                                                lockerDetails.user.user_id
+                                            }
+                                        </span>
 
                                     </div>
 
                                 )}
 
-
-                                {/* Reservation */}
 
                                 {lockerDetails?.reservation && (
 
@@ -558,67 +345,36 @@ function Lockers() {
                                             Reservation
                                         </h3>
 
-                                        <div className="details">
+                                        <div>
 
-                                            <div>
-                                                <span>
-                                                    Reservation ID
-                                                </span>
+                                            <span>
+                                                Reservation ID
+                                            </span>
 
-                                                <strong>
-                                                    #
-                                                    {
-                                                        lockerDetails.reservation.reservation_id
-                                                    }
-                                                </strong>
-                                            </div>
+                                            <strong>
+                                                #
+                                                {
+                                                    lockerDetails
+                                                        .reservation
+                                                        .reservation_id
+                                                }
+                                            </strong>
 
+                                        </div>
 
-                                            <div>
-                                                <span>
-                                                    Status
-                                                </span>
+                                        <div>
 
-                                                <strong>
-                                                    {
-                                                        lockerDetails.reservation.status
-                                                    }
-                                                </strong>
-                                            </div>
+                                            <span>
+                                                Status
+                                            </span>
 
-
-                                            {lockerDetails.reservation.start_time && (
-
-                                                <div>
-                                                    <span>
-                                                        Start
-                                                    </span>
-
-                                                    <strong>
-                                                        {new Date(
-                                                            lockerDetails.reservation.start_time
-                                                        ).toLocaleString()}
-                                                    </strong>
-                                                </div>
-
-                                            )}
-
-
-                                            {lockerDetails.reservation.end_time && (
-
-                                                <div>
-                                                    <span>
-                                                        End
-                                                    </span>
-
-                                                    <strong>
-                                                        {new Date(
-                                                            lockerDetails.reservation.end_time
-                                                        ).toLocaleString()}
-                                                    </strong>
-                                                </div>
-
-                                            )}
+                                            <strong>
+                                                {
+                                                    lockerDetails
+                                                        .reservation
+                                                        .status
+                                                }
+                                            </strong>
 
                                         </div>
 
@@ -627,73 +383,46 @@ function Lockers() {
                                 )}
 
 
-                                {/* Message */}
+                                <div className="actions">
 
-                                {message && (
-
-                                    <div className="success">
-                                        {message}
-                                    </div>
-
-                                )}
-
-
-                                {/* Error */}
-
-                                {error && (
-
-                                    <div className="error">
-                                        {error}
-                                    </div>
-
-                                )}
-
-                                {!loadingDetails && (
-
-                                    <div className="locker-door modal-door">
-                                        <div
-                                            className={`locker-door-panel ${
-                                                doorOpen ? "is-open" : ""
-                                            }`}
-                                        >
-                                            <div className="locker-handle">▪</div>
-                                        </div>
-                                    </div>
-
-                                )}
-
-                                {/* Open Locker */}
-
-                                <div className="controls">
-
-                                    <h3>
-                                        Locker Controls
-                                    </h3>
-
-                                    <p>
-                                        Send an open request to
-                                        this locker.
-                                    </p>
-
-
-                                   <button
+                                    <button
                                         className="open-locker-button"
                                         onClick={
-                                            lockerDetails?.is_open
-                                                ? handleCloseLocker
-                                                : handleOpenLocker
+                                            handleOpenLocker
                                         }
                                         disabled={
-                                            openingLocker ||
-                                            selectedLocker.status === "Offline"
+                                            opening ||
+                                            selectedLocker.status ===
+                                                "Offline"
                                         }
                                     >
-                                        {openingLocker
-                                            ? "Processing..."
-                                            : lockerDetails?.is_open
-                                                ? "🔒 Close Locker"
-                                                : "🔓 Open Locker"}
+
+                                        {opening
+                                            ? "Opening..."
+                                            : "🔓 Open Locker"}
+
                                     </button>
+
+
+                                    {lockerDetails?.reservation && (
+
+                                        <button
+                                            className="release-locker-button"
+                                            onClick={
+                                                handleReleaseLocker
+                                            }
+                                            disabled={
+                                                releasing
+                                            }
+                                        >
+
+                                            {releasing
+                                                ? "Ending..."
+                                                : "End Reservation"}
+
+                                        </button>
+
+                                    )}
 
                                 </div>
 
