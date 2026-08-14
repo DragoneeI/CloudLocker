@@ -86,10 +86,10 @@ function Lockers() {
         // Show the locker as physically open
         setOpenLockerId(selectedLocker.locker_id);
 
-        // Keep it open for 5 seconds
+        /* Keep it open for 5 seconds
         setTimeout(() => {
             setOpenLockerId(null);
-        }, 5000);
+        }, 5000);*/
 
         const details = await getLockerDetails(
             selectedLocker.locker_id
@@ -257,7 +257,7 @@ function Lockers() {
                         <button
                             key={locker.locker_id}
                             className={`locker ${locker.status.toLowerCase()} ${
-                                openedLocker === locker.locker_id ? "opened" : ""
+                                openLockerId === locker.locker_id ? "opened" : ""
                             }`}
                             
                             onClick={() =>
@@ -279,17 +279,15 @@ function Lockers() {
 
 
                             <div className="locker-door">
-
-                                {openedLocker === locker.locker_id ? (
-                                    <div className="locker-open-door">
-                                        <span>OPEN</span>
-                                    </div>
-                                ) : (
+                                <div
+                                    className={`locker-door-panel ${
+                                        openLockerId === locker.locker_id ? "is-open" : ""
+                                    }`}
+                                >
                                     <div className="locker-handle">
                                         ▪
                                     </div>
-                                )}
-
+                                </div>
                             </div>
 
 
