@@ -48,6 +48,10 @@ function Lockers() {
     async function handleLockerClick(locker) {
         setSelectedLocker(locker);
         setLockerDetails(null);
+
+        // Set initial door state
+        setDoorOpen(Boolean(locker.is_open));
+
         setMessage("");
         setLoadingDetails(true);
 
@@ -57,6 +61,10 @@ function Lockers() {
             );
 
             setLockerDetails(data);
+
+            // Make sure animation state matches backend
+            setDoorOpen(Boolean(data.is_open));
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -73,13 +81,13 @@ function Lockers() {
         setMessage("");
         setError("");
 
+        // OPEN THE DOOR VISUALLY IMMEDIATELY
+        setDoorOpen(true);
+
         try {
             const result = await openLocker(
                 selectedLocker.locker_id
             );
-
-            // Start animation immediately
-            setDoorOpen(true);
 
             setMessage(
                 result.message ||
@@ -96,10 +104,10 @@ function Lockers() {
 
             // Automatically close after 5 seconds
             setTimeout(async () => {
-                try {
-                    // Start closing animation immediately
-                    setDoorOpen(false);
+                // CLOSE THE DOOR VISUALLY IMMEDIATELY
+                setDoorOpen(false);
 
+                try {
                     await closeLocker(
                         selectedLocker.locker_id
                     );
@@ -122,11 +130,15 @@ function Lockers() {
             }, 5000);
 
         } catch (err) {
+            // If opening failed, put the door back to closed
+            setDoorOpen(false);
             setError(err.message);
+
         } finally {
             setOpeningLocker(false);
         }
     }
+
 
     async function handleCloseLocker() {
         if (!selectedLocker) {
@@ -137,13 +149,13 @@ function Lockers() {
         setMessage("");
         setError("");
 
+        // CLOSE THE DOOR VISUALLY IMMEDIATELY
+        setDoorOpen(false);
+
         try {
             const result = await closeLocker(
                 selectedLocker.locker_id
             );
-
-            // Start closing animation immediately
-            setDoorOpen(false);
 
             setMessage(
                 result.message ||
@@ -159,7 +171,10 @@ function Lockers() {
             setLockerDetails(details);
 
         } catch (err) {
+            // If closing failed, put it back to open
+            setDoorOpen(true);
             setError(err.message);
+
         } finally {
             setOpeningLocker(false);
         }
