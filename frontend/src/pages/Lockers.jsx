@@ -90,6 +90,30 @@ function Lockers() {
 
         setLockerDetails(details);
 
+        // Automatically close after 5 seconds
+        setTimeout(async () => {
+            try {
+                await closeLocker(
+                    selectedLocker.locker_id
+                );
+
+                await loadLockers();
+
+                const updatedDetails =
+                    await getLockerDetails(
+                        selectedLocker.locker_id
+                    );
+
+                setLockerDetails(updatedDetails);
+
+            } catch (err) {
+                console.error(
+                    "Failed to automatically close locker:",
+                    err
+                );
+            }
+        }, 5000);
+
     } catch (err) {
         setError(err.message);
     } finally {
