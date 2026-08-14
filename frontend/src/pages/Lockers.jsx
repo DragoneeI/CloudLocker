@@ -16,6 +16,7 @@ function Lockers() {
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [openingLocker, setOpeningLocker] = useState(false);
+    const [doorOpen, setDoorOpen] = useState(false);
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -64,96 +65,105 @@ function Lockers() {
     }
 
     async function handleOpenLocker() {
-    if (!selectedLocker) {
-        return;
-    }
+        if (!selectedLocker) {
+            return;
+        }
 
-    setOpeningLocker(true);
-    setMessage("");
-    setError("");
+        setOpeningLocker(true);
+        setMessage("");
+        setError("");
 
-    try {
-        const result = await openLocker(
-            selectedLocker.locker_id
-        );
+        try {
+            const result = await openLocker(
+                selectedLocker.locker_id
+            );
 
-        setMessage(
-            result.message ||
-            `Locker #${selectedLocker.locker_id} opened`
-        );
+            // Start animation immediately
+            setDoorOpen(true);
 
-        await loadLockers();
+            setMessage(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} opened`
+            );
 
-        const details = await getLockerDetails(
-            selectedLocker.locker_id
-        );
+            await loadLockers();
 
-        setLockerDetails(details);
+            const details = await getLockerDetails(
+                selectedLocker.locker_id
+            );
 
-        // Automatically close after 5 seconds
-        setTimeout(async () => {
-            try {
-                await closeLocker(
-                    selectedLocker.locker_id
-                );
+            setLockerDetails(details);
 
-                await loadLockers();
+            // Automatically close after 5 seconds
+            setTimeout(async () => {
+                try {
+                    // Start closing animation immediately
+                    setDoorOpen(false);
 
-                const updatedDetails =
-                    await getLockerDetails(
+                    await closeLocker(
                         selectedLocker.locker_id
                     );
 
-                setLockerDetails(updatedDetails);
+                    await loadLockers();
 
-            } catch (err) {
-                console.error(
-                    "Failed to automatically close locker:",
-                    err
-                );
-            }
-        }, 5000);
+                    const updatedDetails =
+                        await getLockerDetails(
+                            selectedLocker.locker_id
+                        );
 
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setOpeningLocker(false);
+                    setLockerDetails(updatedDetails);
+
+                } catch (err) {
+                    console.error(
+                        "Failed to automatically close locker:",
+                        err
+                    );
+                }
+            }, 5000);
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setOpeningLocker(false);
+        }
     }
-}
 
-async function handleCloseLocker() {
-    if (!selectedLocker) {
-        return;
+    async function handleCloseLocker() {
+        if (!selectedLocker) {
+            return;
+        }
+
+        setOpeningLocker(true);
+        setMessage("");
+        setError("");
+
+        try {
+            const result = await closeLocker(
+                selectedLocker.locker_id
+            );
+
+            // Start closing animation immediately
+            setDoorOpen(false);
+
+            setMessage(
+                result.message ||
+                `Locker #${selectedLocker.locker_id} closed`
+            );
+
+            await loadLockers();
+
+            const details = await getLockerDetails(
+                selectedLocker.locker_id
+            );
+
+            setLockerDetails(details);
+
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setOpeningLocker(false);
+        }
     }
-
-    setOpeningLocker(true);
-    setMessage("");
-    setError("");
-
-    try {
-        const result = await closeLocker(
-            selectedLocker.locker_id
-        );
-
-        setMessage(
-            result.message ||
-            `Locker #${selectedLocker.locker_id} closed`
-        );
-
-        await loadLockers();
-
-        const details = await getLockerDetails(
-            selectedLocker.locker_id
-        );
-
-        setLockerDetails(details);
-
-    } catch (err) {
-        setError(err.message);
-    } finally {
-        setOpeningLocker(false);
-    }
-}
 
     function closeModal() {
         if (openingLocker) {
@@ -628,7 +638,7 @@ async function handleCloseLocker() {
                                     <div className="locker-door modal-door">
                                         <div
                                             className={`locker-door-panel ${
-                                                lockerDetails?.is_open ? "is-open" : ""
+                                                doorOpen ? "is-open" : ""
                                             }`}
                                         >
                                             <div className="locker-handle">▪</div>
