@@ -16,6 +16,7 @@ function Lockers() {
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [openingLocker, setOpeningLocker] = useState(false);
     const [openedLocker, setOpenedLocker] = useState(null);
+    const [openLockerId, setOpenLockerId] = useState(null);
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -64,43 +65,46 @@ function Lockers() {
     }
 
     async function handleOpenLocker() {
-        if (!selectedLocker) {
-            return;
-        }
-
-        setOpeningLocker(true);
-        setMessage("");
-        setError("");
-
-        try {
-            const result = await openLocker(
-                selectedLocker.locker_id
-            );
-
-            setOpenedLocker(selectedLocker.locker_id);
-
-            setMessage(
-                result.message ||
-                `Locker #${selectedLocker.locker_id} opened`
-            );
-
-            /*
-             * Reload locker information after opening.
-             */
-            const details = await getLockerDetails(
-                selectedLocker.locker_id
-            );
-
-            setLockerDetails(details);
-
-            await loadLockers();
-
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setOpeningLocker(false);
-        }
+    if (!selectedLocker) {
+        return;
     }
+
+    setOpeningLocker(true);
+    setMessage("");
+    setError("");
+
+    try {
+        const result = await openLocker(
+            selectedLocker.locker_id
+        );
+
+        setMessage(
+            result.message ||
+            `Locker #${selectedLocker.locker_id} opened`
+        );
+
+        // Show the locker as physically open
+        setOpenLockerId(selectedLocker.locker_id);
+
+        // Keep it open for 5 seconds
+        setTimeout(() => {
+            setOpenLockerId(null);
+        }, 5000);
+
+        const details = await getLockerDetails(
+            selectedLocker.locker_id
+        );
+
+        setLockerDetails(details);
+
+        await loadLockers();
+
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setOpeningLocker(false);
+    }
+}
 
     function closeModal() {
         if (openingLocker) {
@@ -253,7 +257,7 @@ function Lockers() {
                         <button
                             key={locker.locker_id}
                             className={`locker ${locker.status.toLowerCase()} ${
-                            openedLocker === locker.locker_id ? "opened" : ""
+                                openedLocker === locker.locker_id ? "opened" : ""
                             }`}
                             
                             onClick={() =>
