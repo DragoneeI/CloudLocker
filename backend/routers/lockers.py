@@ -111,3 +111,57 @@ def release_locker_endpoint(
     db: Session = Depends(get_db)
 ):
     return release_locker(db, locker_id)
+
+@router.post("/{locker_id}/open")
+def open_locker(
+    locker_id: int,
+    db: Session = Depends(get_db)
+):
+    locker = (
+        db.query(Locker)
+        .filter(Locker.locker_id == locker_id)
+        .first()
+    )
+
+    if not locker:
+        raise HTTPException(
+            status_code=404,
+            detail="Locker not found"
+        )
+
+    if locker.status != "Reserved":
+        raise HTTPException(
+            status_code=400,
+            detail="Locker is not currently reserved"
+        )
+
+    reservation = (
+        db.query(Reservation)
+        .filter(
+            Reservation.locker_id == locker_id,
+            Reservation.status == "Active"
+        )
+        .first()
+    )
+
+    if not reservation:
+        raise HTTPException(
+            status_code=400,
+            detail="Locker has no active reservation"
+        )
+
+    # ------------------------------------------------
+    # FUTURE:
+    # Send command to physical/virtual locker here.
+    #
+    # Example:
+    # locker_controller.open(locker_id)
+    # ------------------------------------------------
+
+    return {
+        "status": "opened",
+        "locker_id": locker.locker_id,
+        "locker_name": locker.locker_name,
+        "user_id": reservation.user_id,
+        "reservation_id": reservation.reservation_id
+    }
