@@ -15,6 +15,7 @@ function Lockers() {
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [openingLocker, setOpeningLocker] = useState(false);
+    const [openedLocker, setOpenedLocker] = useState(null);
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -75,6 +76,8 @@ function Lockers() {
             const result = await openLocker(
                 selectedLocker.locker_id
             );
+
+            setOpenedLocker(selectedLocker.locker_id);
 
             setMessage(
                 result.message ||
@@ -249,7 +252,10 @@ function Lockers() {
 
                         <button
                             key={locker.locker_id}
-                            className={`locker ${locker.status.toLowerCase()}`}
+                            className={`locker ${locker.status.toLowerCase()} ${
+                            openedLocker === locker.locker_id ? "opened" : ""
+                            }`}
+                            
                             onClick={() =>
                                 handleLockerClick(locker)
                             }
@@ -270,9 +276,15 @@ function Lockers() {
 
                             <div className="locker-door">
 
-                                <div className="locker-handle">
-                                    ▪
-                                </div>
+                                {openedLocker === locker.locker_id ? (
+                                    <div className="locker-open-door">
+                                        <span>OPEN</span>
+                                    </div>
+                                ) : (
+                                    <div className="locker-handle">
+                                        ▪
+                                    </div>
+                                )}
 
                             </div>
 
