@@ -210,19 +210,18 @@ export async function closeLocker(lockerId) {
         `${API_URL}/locker/${lockerId}/close`,
         {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            }
         }
     );
 
     const data = await response.json();
 
     if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+
         throw new Error(
             data.detail || "Failed to close locker"
         );
     }
 
-    return data;
+    return response.json();;
 }
