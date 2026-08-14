@@ -20,14 +20,30 @@ function Lockers() {
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [displayLockers, setDisplayLockers] = useState([]);
 
-    async function loadLockers() {
+    async function loadLockers(animateOpenDoors = false) {
         try {
             setError("");
 
             const data = await getLockers();
 
             setLockers(data);
+
+            if (animateOpenDoors) {
+                // Render everything closed first...
+                setDisplayLockers(
+                    data.map(locker => ({ ...locker, is_open: false }))
+                );
+
+                // ...then apply the real state on the next tick,
+                // so any locker that's actually open animates in.
+                setTimeout(() => {
+                    setDisplayLockers(data);
+                }, 50);
+            } else {
+                setDisplayLockers(data);
+            }
         } catch (err) {
             setError(err.message);
         }
@@ -36,7 +52,7 @@ function Lockers() {
     useEffect(() => {
         async function loadData() {
             try {
-                await loadLockers();
+                await loadLockers(true); // animate on initial load
             } finally {
                 setLoading(false);
             }
@@ -213,7 +229,7 @@ function Lockers() {
         locker => locker.status === "Offline"
     ).length;
 
-    const sortedLockers = [...lockers].sort(
+    const sortedLockers = [...displayLockers].sort(
         (a, b) => a.locker_id - b.locker_id
     );
 
