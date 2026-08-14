@@ -158,6 +158,9 @@ def open_locker(
     # locker_controller.open(locker_id)
     # ------------------------------------------------
 
+    locker.is_open = True
+    db.commit()
+
     return {
         "status": "opened",
         "locker_id": locker.locker_id,

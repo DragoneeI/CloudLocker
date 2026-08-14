@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import {
     getLockers,
     getLockerDetails,
-    openLocker
+    openLocker,
+    closeLocker
 } from "../services/api";
 
 import "./Lockers.css";
@@ -15,8 +16,6 @@ function Lockers() {
     const [loading, setLoading] = useState(true);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [openingLocker, setOpeningLocker] = useState(false);
-    const [openedLocker, setOpenedLocker] = useState(null);
-    const [openLockerId, setOpenLockerId] = useState(null);
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
@@ -83,13 +82,7 @@ function Lockers() {
             `Locker #${selectedLocker.locker_id} opened`
         );
 
-        // Show the locker as physically open
-        setOpenLockerId(selectedLocker.locker_id);
-
-        // Keep it open for 5 seconds
-        setTimeout(() => {
-            setOpenLockerId(null);
-        }, 5000);
+        await loadLockers();
 
         const details = await getLockerDetails(
             selectedLocker.locker_id
@@ -97,7 +90,39 @@ function Lockers() {
 
         setLockerDetails(details);
 
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setOpeningLocker(false);
+    }
+}
+
+async function handleCloseLocker() {
+    if (!selectedLocker) {
+        return;
+    }
+
+    setOpeningLocker(true);
+    setMessage("");
+    setError("");
+
+    try {
+        const result = await closeLocker(
+            selectedLocker.locker_id
+        );
+
+        setMessage(
+            result.message ||
+            `Locker #${selectedLocker.locker_id} closed`
+        );
+
         await loadLockers();
+
+        const details = await getLockerDetails(
+            selectedLocker.locker_id
+        );
+
+        setLockerDetails(details);
 
     } catch (err) {
         setError(err.message);
@@ -257,7 +282,7 @@ function Lockers() {
                         <button
                             key={locker.locker_id}
                             className={`locker ${locker.status.toLowerCase()} ${
-                                openLockerId === locker.locker_id ? "opened" : ""
+                                locker.is_open ? "opened" : ""
                             }`}
                             
                             onClick={() =>
@@ -281,7 +306,7 @@ function Lockers() {
                             <div className="locker-door">
                                 <div
                                     className={`locker-door-panel ${
-                                        openLockerId === locker.locker_id ? "is-open" : ""
+                                        locker.is_open ? "is-open" : ""
                                     }`}
                                 >
                                     <div className="locker-handle">
@@ -589,22 +614,23 @@ function Lockers() {
                                     </p>
 
 
-                                    <button
+                                   <button
                                         className="open-locker-button"
                                         onClick={
-                                            handleOpenLocker
+                                            lockerDetails?.is_open
+                                                ? handleCloseLocker
+                                                : handleOpenLocker
                                         }
                                         disabled={
                                             openingLocker ||
-                                            selectedLocker.status ===
-                                                "Offline"
+                                            selectedLocker.status === "Offline"
                                         }
                                     >
-
                                         {openingLocker
-                                            ? "Opening Locker..."
-                                            : "🔓 Open Locker"}
-
+                                            ? "Processing..."
+                                            : lockerDetails?.is_open
+                                                ? "🔒 Close Locker"
+                                                : "🔓 Open Locker"}
                                     </button>
 
                                 </div>

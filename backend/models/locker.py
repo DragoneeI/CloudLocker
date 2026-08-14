@@ -10,3 +10,4 @@ class Locker(Base):
     locker_id = Column(Integer, primary_key=True, index=True)
     locker_name = Column(String(20), unique=True, nullable=False)
     status = Column(String(20), nullable=False, default="Available")
+    is_open = Column(Boolean, default=False, nullable=False)

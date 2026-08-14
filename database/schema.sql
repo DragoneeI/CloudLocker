@@ -10,7 +10,8 @@ CREATE TABLE users (
 CREATE TABLE lockers (
     locker_id SERIAL PRIMARY KEY,
     locker_name VARCHAR(20) UNIQUE NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'Available'
+    status VARCHAR(20) NOT NULL DEFAULT 'Available',
+    is_open BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE reservations (
