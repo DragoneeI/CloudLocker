@@ -192,7 +192,7 @@ CAMERA
 .camera-container {
   position: relative;
   width: min(90vw, 1000px);
-  aspect-ratio: 9 / 12;
+  aspect-ratio: 9 / 11;
   overflow: hidden;
   border-radius: 25px;
   background: #020617;

@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import Kiosk from "./pages/Kiosk";
-
+import Lockers from "./pages/Lockers";
 
 function App() {
     return (
@@ -11,6 +11,8 @@ function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
                 <Route path="/dashboard" element={<Dashboard />} />
+
+                <Route path="/lockers" element={<lockers />} />
 
                 <Route path="/kiosk" element={<Kiosk />} />
             </Routes>
