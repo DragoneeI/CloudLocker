@@ -86,10 +86,10 @@ function Lockers() {
         // Show the locker as physically open
         setOpenLockerId(selectedLocker.locker_id);
 
-        /* Keep it open for 5 seconds
+        // Keep it open for 5 seconds
         setTimeout(() => {
             setOpenLockerId(null);
-        }, 5000);*/
+        }, 5000);
 
         const details = await getLockerDetails(
             selectedLocker.locker_id
