@@ -207,13 +207,11 @@ export async function faceAccess(imageBlob) {
 
 export async function closeLocker(lockerId) {
     const response = await fetch(
-        `${API_URL}/locker/${lockerId}/close`,
+        `${API_URL}/lockers/${lockerId}/close`,
         {
             method: "POST",
         }
     );
-
-    const data = await response.json();
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -223,5 +221,5 @@ export async function closeLocker(lockerId) {
         );
     }
 
-    return response.json();;
+    return response.json();
 }
