@@ -1,27 +1,27 @@
-.virtual-lockers {
+.lockers {
     min-height: 100vh;
     padding: 32px;
     background: #f5f7fa;
 }
 
-.virtual-lockers-header {
+.lockers-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 32px;
 }
 
-.virtual-lockers-header h1 {
+.lockers-header h1 {
     margin: 0;
     font-size: 32px;
 }
 
-.virtual-lockers-header p {
+.lockers-header p {
     margin: 6px 0 0;
     color: #6b7280;
 }
 
-.virtual-status {
+.status {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -39,14 +39,14 @@
     background: #22c55e;
 }
 
-.virtual-locker-section {
+.locker-section {
     background: white;
     border-radius: 16px;
     padding: 28px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
 }
 
-.virtual-locker-grid {
+.locker-grid {
     display: grid;
     grid-template-columns: repeat(
         auto-fill,
@@ -56,7 +56,7 @@
     margin-top: 24px;
 }
 
-.virtual-locker {
+.locker {
     border: 2px solid #e5e7eb;
     border-radius: 14px;
     background: white;
@@ -66,39 +66,39 @@
     transition: 0.2s;
 }
 
-.virtual-locker:hover {
+.locker:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
-.virtual-locker.available {
+.locker.available {
     border-color: #bbf7d0;
 }
 
-.virtual-locker.reserved {
+.locker.reserved {
     border-color: #fde68a;
 }
 
-.virtual-locker.offline {
+.locker.offline {
     border-color: #fecaca;
     opacity: 0.7;
 }
 
-.virtual-locker-number {
+.locker-number {
     font-weight: 700;
     color: #6b7280;
 }
 
-.virtual-locker-icon {
+.locker-icon {
     font-size: 42px;
     margin: 22px 0 12px;
 }
 
-.virtual-locker h3 {
+.locker h3 {
     margin: 0 0 12px;
 }
 
-.virtual-locker-status {
+.locker-status {
     display: inline-block;
     padding: 5px 10px;
     border-radius: 12px;
@@ -107,7 +107,7 @@
     font-weight: 700;
 }
 
-.virtual-modal-overlay {
+.modal-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
@@ -118,7 +118,7 @@
     z-index: 1000;
 }
 
-.virtual-modal {
+.modal {
     width: 100%;
     max-width: 520px;
     background: white;
@@ -127,78 +127,78 @@
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
 
-.virtual-modal-header {
+.modal-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
 }
 
-.virtual-modal-header h2 {
+.modal-header h2 {
     margin: 0;
 }
 
-.virtual-modal-header p {
+.modal-header p {
     margin: 6px 0 0;
     color: #6b7280;
 }
 
-.virtual-close {
+.close {
     border: none;
     background: transparent;
     font-size: 30px;
     cursor: pointer;
 }
 
-.virtual-loading {
+.loading {
     padding: 40px 0;
     text-align: center;
 }
 
-.virtual-info {
+.info {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     margin-top: 28px;
 }
 
-.virtual-info div {
+.info div {
     background: #f9fafb;
     padding: 16px;
     border-radius: 10px;
 }
 
-.virtual-info span,
-.virtual-reservation span {
+.info span,
+.reservation span {
     display: block;
     color: #6b7280;
     font-size: 13px;
     margin-bottom: 6px;
 }
 
-.virtual-reservation {
+.reservation {
     margin-top: 20px;
     padding: 18px;
     background: #f9fafb;
     border-radius: 12px;
 }
 
-.virtual-reservation h3 {
+.reservation h3 {
     margin-top: 0;
 }
 
-.virtual-reservation p {
+.reservation p {
     margin-bottom: 5px;
     font-weight: 700;
     font-size: 18px;
 }
 
-.virtual-actions {
+.actions {
     display: flex;
     gap: 12px;
     margin-top: 24px;
 }
 
-.virtual-actions button {
+.actions button {
     flex: 1;
     padding: 13px 18px;
     border: none;
@@ -207,7 +207,7 @@
     cursor: pointer;
 }
 
-.virtual-actions button:disabled {
+.actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -222,7 +222,7 @@
     color: #991b1b;
 }
 
-.virtual-lockers-message {
+.lockers-message {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -230,26 +230,26 @@
     font-size: 20px;
 }
 
-.virtual-lockers-message.error {
+.lockers-message.error {
     color: #dc2626;
 }
 
 @media (max-width: 700px) {
-    .virtual-lockers {
+    .lockers {
         padding: 18px;
     }
 
-    .virtual-lockers-header {
+    .lockers-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
     }
 
-    .virtual-info {
+    .info {
         grid-template-columns: 1fr;
     }
 
-    .virtual-actions {
+    .actions {
         flex-direction: column;
     }
 }
