@@ -59,6 +59,7 @@ def get_locker_details(
         "locker_id": locker.locker_id,
         "locker_name": locker.locker_name,
         "status": locker.status,
+        "is_open": locker.is_open
         "user": {
             "user_id": user.user_id,
             "full_name": user.full_name,
@@ -160,9 +161,68 @@ def open_locker(
 
     locker.is_open = True
     db.commit()
+    db.refresh(locker)
 
     return {
         "status": "opened",
+        "locker_id": locker.locker_id,
+        "locker_name": locker.locker_name,
+        "user_id": reservation.user_id,
+        "reservation_id": reservation.reservation_id
+    }
+
+@router.post("/{locker_id}/close")
+def close_locker(
+    locker_id: int,
+    db: Session = Depends(get_db)
+):
+    locker = (
+        db.query(Locker)
+        .filter(Locker.locker_id == locker_id)
+        .first()
+    )
+
+    if not locker:
+        raise HTTPException(
+            status_code=404,
+            detail="Locker not found"
+        )
+
+    if locker.status != "Reserved":
+        raise HTTPException(
+            status_code=400,
+            detail="Locker is not currently reserved"
+        )
+
+    reservation = (
+        db.query(Reservation)
+        .filter(
+            Reservation.locker_id == locker_id,
+            Reservation.status == "Active"
+        )
+        .first()
+    )
+
+    if not reservation:
+        raise HTTPException(
+            status_code=400,
+            detail="Locker has no active reservation"
+        )
+
+    # ------------------------------------------------
+    # FUTURE:
+    # Send command to physical/virtual locker here.
+    #
+    # Example:
+    # locker_controller.close(locker_id)
+    # ------------------------------------------------
+
+    locker.is_open = False
+    db.commit()
+    db.refresh(locker)
+
+    return {
+        "status": "closed",
         "locker_id": locker.locker_id,
         "locker_name": locker.locker_name,
         "user_id": reservation.user_id,
