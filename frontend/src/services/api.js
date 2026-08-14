@@ -184,7 +184,7 @@ export async function activateUser(userId) {
 
 export async function faceAccess(imageBlob) {
     const formData = new FormData();
-    formData.append("file", imageBlob, "capture.jpg");
+    formData.append("image", imageBlob, "capture.jpg");
 
     const response = await fetch(`${API_URL}/face/access`, {
         method: "POST",
@@ -193,10 +193,13 @@ export async function faceAccess(imageBlob) {
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-
-        throw new Error(
-            data.detail || "Face access failed"
-        );
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Face access failed";
+        throw new Error(message);
     }
 
     return response.json();
