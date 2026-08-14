@@ -1,7 +1,9 @@
 const API_URL = "https://2p1fovsrld.execute-api.us-east-1.amazonaws.com";
 
 export async function getUsers() {
-    const response = await fetch(`${API_URL}/users`);
+    const response = await fetch(`${API_URL}/users`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch users");
@@ -11,7 +13,9 @@ export async function getUsers() {
 }
 
 export async function getUser(userId) {
-    const response = await fetch(`${API_URL}/users/${userId}`);
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch user");
@@ -20,8 +24,11 @@ export async function getUser(userId) {
     return response.json();
 }
 
+
 export async function getLockers() {
-    const response = await fetch(`${API_URL}/lockers`);
+    const response = await fetch(`${API_URL}/lockers`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch lockers");
@@ -31,7 +38,9 @@ export async function getLockers() {
 }
 
 export async function getLockerDetails(lockerId) {
-    const response = await fetch(`${API_URL}/lockers/${lockerId}`);
+    const response = await fetch(`${API_URL}/lockers/${lockerId}`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch locker details");
@@ -105,7 +114,10 @@ export async function releaseLocker(lockerId) {
 
 export async function getUserLocker(userId) {
     const response = await fetch(
-        `${API_URL}/users/${userId}/locker`
+        `${API_URL}/users/${userId}/locker`,
+        {
+            cache: "no-store",
+        }
     );
 
     if (!response.ok) {
