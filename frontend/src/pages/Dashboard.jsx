@@ -9,7 +9,9 @@ import {
     updateLockerStatus,
     releaseLocker,
     openLocker,
-    closeLocker
+    closeLocker,
+    createReservation,
+    createAutoReservation
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -36,6 +38,21 @@ function Dashboard() {
     const [loadingLocker, setLoadingLocker] = useState(false);
     const [updatingLocker, setUpdatingLocker] = useState(false);
     const [controllingLocker, setControllingLocker] = useState(false);
+
+    // Reservation form — User modal
+    const [showReserveForm, setShowReserveForm] = useState(false);
+    const [autoAssign, setAutoAssign] = useState(false);
+    const [reserveLockerId, setReserveLockerId] = useState("");
+    const [reserveStart, setReserveStart] = useState("");
+    const [reserveEnd, setReserveEnd] = useState("");
+    const [reserving, setReserving] = useState(false);
+
+    // Reservation form — Locker modal
+    const [showLockerReserveForm, setShowLockerReserveForm] = useState(false);
+    const [reserveUserId, setReserveUserId] = useState("");
+    const [lockerReserveStart, setLockerReserveStart] = useState("");
+    const [lockerReserveEnd, setLockerReserveEnd] = useState("");
+    const [lockerReserving, setLockerReserving] = useState(false);
 
     /*
      * =========================
@@ -69,22 +86,6 @@ function Dashboard() {
      * =========================
      */
 
-/*    async function handleUserClick(user) {
-        setSelectedUser(user);
-        setUserLocker(null);
-        setLoadingUser(true);
-
-        try {
-            const lockerData = await getUserLocker(user.user_id);
-
-            setUserLocker(lockerData?.locker || null);
-        } catch (err) {
-            console.error(err);
-            setUserLocker(null);
-        } finally {
-            setLoadingUser(false);
-        }
-    }*/
 
     async function handleUserClick(user) {
         setSelectedUser(user);
@@ -171,6 +172,115 @@ function Dashboard() {
             alert(err.message);
         } finally {
             setReleasing(false);
+        }
+    }
+
+    async function handleCreateReservation() {
+        if (!selectedUser) return;
+
+        if (!reserveStart || !reserveEnd) {
+            alert("Please set both start and end time.");
+            return;
+        }
+
+        if (!autoAssign && !reserveLockerId) {
+            alert("Please select a locker or switch on automatic assignment.");
+            return;
+        }
+
+        setReserving(true);
+
+        try {
+            const payload = {
+                user_id: selectedUser.user_id,
+                start_time: new Date(reserveStart).toISOString(),
+                end_time: new Date(reserveEnd).toISOString(),
+            };
+
+            if (autoAssign) {
+                await createAutoReservation(payload);
+            } else {
+                await createReservation({
+                    ...payload,
+                    locker_id: Number(reserveLockerId),
+                });
+            }
+
+            const [usersData, lockersData] = await Promise.all([
+                getUsers(),
+                getLockers(),
+            ]);
+
+            setUsers(usersData);
+            setLockers(lockersData);
+
+            const updatedLockerData = await getUserLocker(selectedUser.user_id);
+            const locker = updatedLockerData?.locker ?? updatedLockerData ?? null;
+            setUserLocker(locker);
+
+            setShowReserveForm(false);
+            setAutoAssign(false);
+            setReserveLockerId("");
+            setReserveStart("");
+            setReserveEnd("");
+
+            alert("Locker reserved successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setReserving(false);
+        }
+    }
+
+    async function handleCreateLockerReservation() {
+        if (!selectedLocker) return;
+
+        if (!reserveUserId) {
+            alert("Please enter a user ID.");
+            return;
+        }
+
+        if (!lockerReserveStart || !lockerReserveEnd) {
+            alert("Please set both start and end time.");
+            return;
+        }
+
+        setLockerReserving(true);
+
+        try {
+            await createReservation({
+                user_id: Number(reserveUserId),
+                locker_id: selectedLocker.locker_id,
+                start_time: new Date(lockerReserveStart).toISOString(),
+                end_time: new Date(lockerReserveEnd).toISOString(),
+            });
+
+            const [usersData, lockersData] = await Promise.all([
+                getUsers(),
+                getLockers(),
+            ]);
+
+            setUsers(usersData);
+            setLockers(lockersData);
+
+            const updatedLocker = lockersData.find(
+                locker => locker.locker_id === selectedLocker.locker_id
+            );
+            setSelectedLocker(updatedLocker || selectedLocker);
+
+            const details = await getLockerDetails(selectedLocker.locker_id);
+            setLockerDetails(details);
+
+            setShowLockerReserveForm(false);
+            setReserveUserId("");
+            setLockerReserveStart("");
+            setLockerReserveEnd("");
+
+            alert("Locker reserved successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setLockerReserving(false);
         }
     }
 
@@ -460,6 +570,11 @@ function Dashboard() {
 
         setSelectedUser(null);
         setUserLocker(null);
+        setShowReserveForm(false);
+        setAutoAssign(false);
+        setReserveLockerId("");
+        setReserveStart("");
+        setReserveEnd("");
     }
 
     function closeLockerModal() {
@@ -469,6 +584,10 @@ function Dashboard() {
 
         setSelectedLocker(null);
         setLockerDetails(null);
+        setShowLockerReserveForm(false);
+        setReserveUserId("");
+        setLockerReserveStart("");
+        setLockerReserveEnd("");
     }
 
     /*
@@ -1238,6 +1357,102 @@ function Dashboard() {
                             </div>
 
                         </div>
+                        {!userLocker && selectedUser.is_active && (
+
+                            <div className="reservation-box">
+
+                                {!showReserveForm ? (
+
+                                    <button
+                                        className="force-release-button"
+                                        onClick={() => setShowReserveForm(true)}
+                                    >
+                                        Create a Reservation
+                                    </button>
+
+                                ) : (
+
+                                    <>
+                                        <h3>Create a Reservation</h3>
+
+                                        <div className="info-item">
+                                            <span>Automatic Locker Assignment</span>
+                                            <label className="switch">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={autoAssign}
+                                                    onChange={e => {
+                                                        setAutoAssign(e.target.checked);
+                                                        setReserveLockerId("");
+                                                    }}
+                                                />
+                                                <span className="slider" />
+                                            </label>
+                                        </div>
+
+                                        {!autoAssign && (
+                                            <div className="info-item">
+                                                <span>Locker</span>
+                                                <select
+                                                    value={reserveLockerId}
+                                                    onChange={e => setReserveLockerId(e.target.value)}
+                                                >
+                                                    <option value="">Select a locker</option>
+                                                    {lockers
+                                                        .filter(l => l.status === "Available")
+                                                        .map(l => (
+                                                            <option key={l.locker_id} value={l.locker_id}>
+                                                                {l.locker_name} (#{l.locker_id})
+                                                            </option>
+                                                        ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        <div className="info-item">
+                                            <span>Start Time</span>
+                                            <input
+                                                type="datetime-local"
+                                                value={reserveStart}
+                                                onChange={e => setReserveStart(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="info-item">
+                                            <span>End Time</span>
+                                            <input
+                                                type="datetime-local"
+                                                value={reserveEnd}
+                                                onChange={e => setReserveEnd(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <button
+                                            className="force-release-button"
+                                            onClick={handleCreateReservation}
+                                            disabled={reserving}
+                                        >
+                                            {reserving ? "Reserving..." : "Confirm Reservation"}
+                                        </button>
+
+                                        <button
+                                            className="modal-close"
+                                            onClick={() => {
+                                                setShowReserveForm(false);
+                                                setAutoAssign(false);
+                                                setReserveLockerId("");
+                                            }}
+                                            disabled={reserving}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+
+                                )}
+
+                            </div>
+
+                        )}
 
                         {userLocker && (
 
@@ -1588,6 +1803,75 @@ function Dashboard() {
 
                                 )}
 
+                                {selectedLocker.status === "Available" && (
+
+                                    <div className="reservation-box">
+
+                                        {!showLockerReserveForm ? (
+
+                                            <button
+                                                className="force-release-button"
+                                                onClick={() => setShowLockerReserveForm(true)}
+                                            >
+                                                Create a Reservation
+                                            </button>
+
+                                        ) : (
+
+                                            <>
+                                                <h3>Create a Reservation</h3>
+
+                                                <div className="info-item">
+                                                    <span>User ID</span>
+                                                    <input
+                                                        type="number"
+                                                        value={reserveUserId}
+                                                        onChange={e => setReserveUserId(e.target.value)}
+                                                        placeholder="Enter user ID"
+                                                    />
+                                                </div>
+
+                                                <div className="info-item">
+                                                    <span>Start Time</span>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={lockerReserveStart}
+                                                        onChange={e => setLockerReserveStart(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="info-item">
+                                                    <span>End Time</span>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={lockerReserveEnd}
+                                                        onChange={e => setLockerReserveEnd(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    className="force-release-button"
+                                                    onClick={handleCreateLockerReservation}
+                                                    disabled={lockerReserving}
+                                                >
+                                                    {lockerReserving ? "Reserving..." : "Confirm Reservation"}
+                                                </button>
+
+                                                <button
+                                                    className="modal-close"
+                                                    onClick={() => setShowLockerReserveForm(false)}
+                                                    disabled={lockerReserving}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </>
+
+                                        )}
+
+                                    </div>
+
+                                )}
+
                                 <div className="locker-controls">
 
                                     <h3>
@@ -1597,6 +1881,20 @@ function Dashboard() {
                                     <p>
                                         Control the locker door or change its system status.
                                     </p>
+
+                                    {!loadingLocker && (
+
+                                        <div className="locker-door modal-door">
+                                            <div
+                                                className={`locker-door-panel ${
+                                                    selectedLocker.is_open ? "is-open" : ""
+                                                }`}
+                                            >
+                                                <div className="locker-handle">▪</div>
+                                            </div>
+                                        </div>
+
+                                    )}
 
                                     <div className="locker-door-buttons">
 

@@ -126,22 +126,6 @@
     font-weight: 700;
 }
 
-.locker-door {
-    height: 145px;
-    margin: 20px 18px 15px;
-    border: 4px solid #9ca3af;
-    border-radius: 8px;
-    background: linear-gradient(
-        90deg,
-        #e5e7eb,
-        #f9fafb,
-        #e5e7eb
-    );
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
 .locker-handle {
     margin-right: 10px;
     width: 8px;

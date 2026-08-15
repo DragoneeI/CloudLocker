@@ -1,7 +1,9 @@
 const API_URL = "https://2p1fovsrld.execute-api.us-east-1.amazonaws.com";
 
 export async function getUsers() {
-    const response = await fetch(`${API_URL}/users`);
+    const response = await fetch(`${API_URL}/users`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch users");
@@ -11,7 +13,9 @@ export async function getUsers() {
 }
 
 export async function getUser(userId) {
-    const response = await fetch(`${API_URL}/users/${userId}`);
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch user");
@@ -20,8 +24,11 @@ export async function getUser(userId) {
     return response.json();
 }
 
+
 export async function getLockers() {
-    const response = await fetch(`${API_URL}/lockers`);
+    const response = await fetch(`${API_URL}/lockers`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch lockers");
@@ -31,7 +38,9 @@ export async function getLockers() {
 }
 
 export async function getLockerDetails(lockerId) {
-    const response = await fetch(`${API_URL}/lockers/${lockerId}`);
+    const response = await fetch(`${API_URL}/lockers/${lockerId}`, {
+        cache: "no-store",
+    });
 
     if (!response.ok) {
         throw new Error("Failed to fetch locker details");
@@ -69,16 +78,13 @@ export async function openLocker(lockerId) {
     const response = await fetch(
         `${API_URL}/lockers/${lockerId}/open`,
         {
-            method: "POST",
+            method: "POST"
         }
     );
 
     if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-
-        throw new Error(
-            data.detail || "Failed to open locker"
-        );
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to open locker");
     }
 
     return response.json();
@@ -105,7 +111,10 @@ export async function releaseLocker(lockerId) {
 
 export async function getUserLocker(userId) {
     const response = await fetch(
-        `${API_URL}/users/${userId}/locker`
+        `${API_URL}/users/${userId}/locker`,
+        {
+            cache: "no-store",
+        }
     );
 
     if (!response.ok) {
@@ -207,21 +216,58 @@ export async function faceAccess(imageBlob) {
 
 export async function closeLocker(lockerId) {
     const response = await fetch(
-        `${API_URL}/locker/${lockerId}/close`,
+        `${API_URL}/lockers/${lockerId}/close`,
         {
-            method: "POST",
+            method: "POST"
         }
     );
 
-    const data = await response.json();
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to close locker");
+    }
+
+    return response.json();
+}
+
+export async function createReservation(payload) {
+    const response = await fetch(`${API_URL}/reservations/manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
 
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-
-        throw new Error(
-            data.detail || "Failed to close locker"
-        );
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to create reservation";
+        throw new Error(message);
     }
 
-    return response.json();;
+    return response.json();
+}
+
+export async function createAutoReservation(payload) {
+    const response = await fetch(`${API_URL}/reservations/auto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to create reservation";
+        throw new Error(message);
+    }
+
+    return response.json();
 }
