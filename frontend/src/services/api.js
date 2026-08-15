@@ -292,3 +292,26 @@ export async function createUser(payload) {
 
     return response.json();
 }
+
+export async function enrollFace(userId, imageFile) {
+    const formData = new FormData();
+    formData.append("image", imageFile);
+
+    const response = await fetch(`${API_URL}/face/enroll/${userId}`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to enroll face";
+        throw new Error(message);
+    }
+
+    return response.json();
+}

@@ -12,7 +12,8 @@ import {
     closeLocker,
     createReservation,
     createAutoReservation,
-    createUser
+    createUser,
+    enrollFace
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -36,6 +37,7 @@ function Dashboard() {
     const [newUserName, setNewUserName] = useState("");
     const [newUserEmail, setNewUserEmail] = useState("");
     const [addingUser, setAddingUser] = useState(false);
+    const [newUserImage, setNewUserImage] = useState(null);
 
     // Locker modal
     const [selectedLocker, setSelectedLocker] = useState(null);
@@ -100,10 +102,20 @@ function Dashboard() {
         setAddingUser(true);
 
         try {
-            await createUser({
+            const newUser = await createUser({
                 full_name: newUserName.trim(),
                 email: newUserEmail.trim(),
             });
+
+            if (newUserImage) {
+                try {
+                    await enrollFace(newUser.user_id, newUserImage);
+                } catch (err) {
+                    alert(
+                        `User created, but face enrollment failed: ${err.message}`
+                    );
+                }
+            }
 
             const usersData = await getUsers();
             setUsers(usersData);
@@ -111,6 +123,7 @@ function Dashboard() {
             setShowAddUserForm(false);
             setNewUserName("");
             setNewUserEmail("");
+            setNewUserImage(null);
 
             alert("User added successfully.");
         } catch (err) {
@@ -1346,6 +1359,20 @@ function Dashboard() {
                                 </strong>
 
                             </div>
+                            
+                            <div className="info-item">
+                                <span>Face Image</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={e => setNewUserImage(e.target.files[0] || null)}
+                                />
+                                {newUserImage && (
+                                    <p style={{ marginTop: "6px", fontSize: "13px", color: "#6b7280" }}>
+                                        Selected: {newUserImage.name}
+                                    </p>
+                                )}
+                            </div>
 
                             <div className="info-item">
 
@@ -1578,7 +1605,12 @@ function Dashboard() {
 
                 <div
                     className="user-modal-overlay"
-                    onClick={() => !addingUser && setShowAddUserForm(false)}
+                    onClick={() => {
+                        if (!addingUser) {
+                            setShowAddUserForm(false);
+                            setNewUserImage(null);
+                        }
+                    }}
                 >
 
                     <div
@@ -1595,7 +1627,10 @@ function Dashboard() {
 
                             <button
                                 className="modal-close"
-                                onClick={() => setShowAddUserForm(false)}
+                                onClick={() => {
+                                    setShowAddUserForm(false);
+                                    setNewUserImage(null);
+                                }}
                                 disabled={addingUser}
                             >
                                 ×
