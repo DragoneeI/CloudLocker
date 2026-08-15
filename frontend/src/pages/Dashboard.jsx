@@ -11,7 +11,8 @@ import {
     openLocker,
     closeLocker,
     createReservation,
-    createAutoReservation
+    createAutoReservation,
+    createUser
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -31,6 +32,10 @@ function Dashboard() {
     const [userLocker, setUserLocker] = useState(null);
     const [loadingUser, setLoadingUser] = useState(false);
     const [releasing, setReleasing] = useState(false);
+    const [showAddUserForm, setShowAddUserForm] = useState(false);
+    const [newUserName, setNewUserName] = useState("");
+    const [newUserEmail, setNewUserEmail] = useState("");
+    const [addingUser, setAddingUser] = useState(false);
 
     // Locker modal
     const [selectedLocker, setSelectedLocker] = useState(null);
@@ -86,6 +91,34 @@ function Dashboard() {
      * =========================
      */
 
+    async function handleAddUser() {
+        if (!newUserName.trim() || !newUserEmail.trim()) {
+            alert("Please enter both name and email.");
+            return;
+        }
+
+        setAddingUser(true);
+
+        try {
+            await createUser({
+                full_name: newUserName.trim(),
+                email: newUserEmail.trim(),
+            });
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            setShowAddUserForm(false);
+            setNewUserName("");
+            setNewUserEmail("");
+
+            alert("User added successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setAddingUser(false);
+        }
+    }
 
     async function handleUserClick(user) {
         setSelectedUser(user);
@@ -736,22 +769,13 @@ function Dashboard() {
     function renderLockers() {
         return (
             <>
-                <div className="page-title">
-
-                    <h1>Lockers</h1>
-
-                    <p>
-                        Manage and monitor all lockers
-                    </p>
-
-                </div>
 
                 <section className="dashboard-section">
 
                     <div className="section-header">
 
                         <div>
-                            <h2>Locker Status</h2>
+                            <h2>Lockers Status</h2>
 
                             <p>
                                 Current status of all lockers
@@ -842,26 +866,22 @@ function Dashboard() {
     function renderUsers() {
         return (
             <>
-                <div className="page-title">
-
-                    <h1>Users</h1>
-
-                    <p>
-                        Manage registered SmartLocker users
-                    </p>
-
-                </div>
 
                 <section className="dashboard-section">
 
                     <div className="section-header">
 
-                        <div>
-                            <h2>Users</h2>
-
-                            <p>
-                                Registered SmartLocker users
-                            </p>
+                       <div>
+                            <div className="section-title-row">
+                                <h2>Users</h2>
+                                <button
+                                    className="add-user-button"
+                                    onClick={() => setShowAddUserForm(true)}
+                                >
+                                    + Add User
+                                </button>
+                            </div>
+                            <p>Registered SmartLocker users</p>
                         </div>
 
                         <div className="user-summary">
@@ -1545,6 +1565,75 @@ function Dashboard() {
                             </div>
 
                         )}
+
+                    </div>
+
+                </div>
+
+            )}
+
+            {/* ADD USER MODAL */}
+
+            {showAddUserForm && (
+
+                <div
+                    className="user-modal-overlay"
+                    onClick={() => !addingUser && setShowAddUserForm(false)}
+                >
+
+                    <div
+                        className="user-modal"
+                        onClick={event => event.stopPropagation()}
+                    >
+
+                        <div className="user-modal-header">
+
+                            <div>
+                                <h2>Add User</h2>
+                                <p>Create a new SmartLocker user</p>
+                            </div>
+
+                            <button
+                                className="modal-close"
+                                onClick={() => setShowAddUserForm(false)}
+                                disabled={addingUser}
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+                        <div className="reservation-box">
+
+                            <div className="info-item">
+                                <span>Full Name</span>
+                                <input
+                                    type="text"
+                                    value={newUserName}
+                                    onChange={e => setNewUserName(e.target.value)}
+                                    placeholder="Enter full name"
+                                />
+                            </div>
+
+                            <div className="info-item">
+                                <span>Email</span>
+                                <input
+                                    type="email"
+                                    value={newUserEmail}
+                                    onChange={e => setNewUserEmail(e.target.value)}
+                                    placeholder="Enter email"
+                                />
+                            </div>
+
+                            <button
+                                className="force-release-button"
+                                onClick={handleAddUser}
+                                disabled={addingUser}
+                            >
+                                {addingUser ? "Adding..." : "Add User"}
+                            </button>
+
+                        </div>
 
                     </div>
 
