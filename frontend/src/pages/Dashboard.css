@@ -1329,3 +1329,26 @@
 .switch input:checked + .slider::before {
     transform: translateX(20px);
 }
+
+.section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.add-user-button {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.add-user-button:hover {
+    background: #1d4ed8;
+}

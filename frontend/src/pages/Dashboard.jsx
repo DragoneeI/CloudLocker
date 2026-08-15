@@ -1360,19 +1360,6 @@ function Dashboard() {
 
                             </div>
                             
-                            <div className="info-item">
-                                <span>Face Image</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={e => setNewUserImage(e.target.files[0] || null)}
-                                />
-                                {newUserImage && (
-                                    <p style={{ marginTop: "6px", fontSize: "13px", color: "#6b7280" }}>
-                                        Selected: {newUserImage.name}
-                                    </p>
-                                )}
-                            </div>
 
                             <div className="info-item">
 
@@ -1658,6 +1645,20 @@ function Dashboard() {
                                     onChange={e => setNewUserEmail(e.target.value)}
                                     placeholder="Enter email"
                                 />
+                            </div>
+                                
+                            <div className="info-item">
+                                <span>Face Image</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={e => setNewUserImage(e.target.files[0] || null)}
+                                />
+                                {newUserImage && (
+                                    <p style={{ marginTop: "6px", fontSize: "13px", color: "#6b7280" }}>
+                                        Selected: {newUserImage.name}
+                                    </p>
+                                )}
                             </div>
 
                             <button
