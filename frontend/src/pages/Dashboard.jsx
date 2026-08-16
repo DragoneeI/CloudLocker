@@ -13,7 +13,10 @@ import {
     createReservation,
     createAutoReservation,
     createUser,
-    enrollFace
+    enrollFace,
+    activateUser,
+    deactivateUser,
+    editUser
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -38,6 +41,11 @@ function Dashboard() {
     const [newUserEmail, setNewUserEmail] = useState("");
     const [addingUser, setAddingUser] = useState(false);
     const [newUserImage, setNewUserImage] = useState(null);
+    const [togglingActive, setTogglingActive] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editing, setEditing] = useState(false);
 
     // Locker modal
     const [selectedLocker, setSelectedLocker] = useState(null);
@@ -172,6 +180,79 @@ function Dashboard() {
             setUserLocker(null);
         } finally {
             setLoadingUser(false);
+        }
+    }
+
+    async function handleToggleActive() {
+        if (!selectedUser) return;
+
+        const action = selectedUser.is_active ? "deactivate" : "activate";
+
+        const confirmed = window.confirm(
+            `${action === "deactivate" ? "Deactivate" : "Activate"} ${selectedUser.full_name}?`
+        );
+
+        if (!confirmed) return;
+
+        setTogglingActive(true);
+
+        try {
+            if (action === "deactivate") {
+                await deactivateUser(selectedUser.user_id);
+            } else {
+                await activateUser(selectedUser.user_id);
+            }
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            const updatedUser = usersData.find(
+                u => u.user_id === selectedUser.user_id
+            );
+            setSelectedUser(updatedUser || selectedUser);
+
+            alert(`User ${action}d successfully.`);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setTogglingActive(false);
+        }
+    }
+
+    async function handleEditUser() {
+        if (!selectedUser) return;
+
+        if (!editName.trim() && !editEmail.trim()) {
+            alert("Enter a new name or email to update.");
+            return;
+        }
+
+        setEditing(true);
+
+        try {
+            await editUser(
+                selectedUser.user_id,
+                editName.trim() || null,
+                editEmail.trim() || null
+            );
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            const updatedUser = usersData.find(
+                u => u.user_id === selectedUser.user_id
+            );
+            setSelectedUser(updatedUser || selectedUser);
+
+            setShowEditForm(false);
+            setEditName("");
+            setEditEmail("");
+
+            alert("User updated successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setEditing(false);
         }
     }
 
@@ -621,6 +702,9 @@ function Dashboard() {
         setReserveLockerId("");
         setReserveStart("");
         setReserveEnd("");
+        setShowEditForm(false);
+        setEditName("");
+        setEditEmail("");
     }
 
     function closeLockerModal() {
@@ -1340,6 +1424,79 @@ function Dashboard() {
 
                         </div>
 
+                        <div className="locker-door-buttons">
+
+                            <button
+                                className="locker-door-button open"
+                                onClick={() => setShowEditForm(!showEditForm)}
+                            >
+                                Edit User
+                            </button>
+
+                            <button
+                                className="locker-door-button close"
+                                onClick={handleToggleActive}
+                                disabled={togglingActive}
+                            >
+                                {togglingActive
+                                    ? "Processing..."
+                                    : selectedUser.is_active
+                                    ? "Deactivate User"
+                                    : "Activate User"}
+                            </button>
+
+                        </div>
+
+                        {showEditForm && (
+
+                            <div className="reservation-box">
+
+                                <h3>Edit User</h3>
+
+                                <div className="info-item">
+                                    <span>New Full Name</span>
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={e => setEditName(e.target.value)}
+                                        placeholder={selectedUser.full_name}
+                                    />
+                                </div>
+
+                                <div className="info-item">
+                                    <span>New Email</span>
+                                    <input
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={e => setEditEmail(e.target.value)}
+                                        placeholder={selectedUser.email}
+                                    />
+                                </div>
+
+                                <button
+                                    className="force-release-button"
+                                    onClick={handleEditUser}
+                                    disabled={editing}
+                                >
+                                    {editing ? "Saving..." : "Save Changes"}
+                                </button>
+
+                                <button
+                                    className="modal-close"
+                                    onClick={() => {
+                                        setShowEditForm(false);
+                                        setEditName("");
+                                        setEditEmail("");
+                                    }}
+                                    disabled={editing}
+                                >
+                                    Cancel
+                                </button>
+
+                            </div>
+
+                        )}
+
                         <div className="user-modal-info">
                             
                             <div className="info-item">
@@ -1359,7 +1516,6 @@ function Dashboard() {
                                 </strong>
 
                             </div>
-                            
 
                             <div className="info-item">
 
@@ -1646,7 +1802,7 @@ function Dashboard() {
                                     placeholder="Enter email"
                                 />
                             </div>
-                                
+
                             <div className="info-item">
                                 <span>Face Image</span>
                                 <input

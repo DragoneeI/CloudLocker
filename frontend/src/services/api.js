@@ -191,6 +191,29 @@ export async function activateUser(userId) {
     return response.json();
 }
 
+export async function editUser(userId, newName, newEmail) {
+    const params = new URLSearchParams({ user_id: userId });
+    if (newName) params.append("new_name", newName);
+    if (newEmail) params.append("new_email", newEmail);
+
+    const response = await fetch(`${API_URL}/users?${params.toString()}`, {
+        method: "PATCH",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to update user";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
 export async function faceAccess(imageBlob) {
     const formData = new FormData();
     formData.append("image", imageBlob, "capture.jpg");
