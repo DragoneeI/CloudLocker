@@ -464,7 +464,7 @@ function Kiosk() {
       <div className="kiosk">
         <div className="kiosk-idle">
           <div className="kiosk-logo">🔐</div>
-          <h1>SmartLocker</h1>
+          <h1>Smart Access</h1>
           <p>Secure locker & door access</p>
           <button
             className="kiosk-start-button"
@@ -591,7 +591,7 @@ function Kiosk() {
       <div className="kiosk">
         <div className="kiosk-camera-screen">
           <div className="kiosk-top-bar">
-            <h1>SmartLocker</h1>
+            <h1>Smart Access</h1>
             <span>
               {mode === "door" ? "Door Verification" : "Face Verification"}
             </span>
@@ -929,7 +929,7 @@ function Kiosk() {
         <div className="kiosk-panel">
           <div className="kiosk-icon success-icon">✓</div>
           <h1>Reservation Ended</h1>
-          <p>Thank you for using SmartLocker.</p>
+          <p>Thank you for using Smart Access.</p>
           <button className="kiosk-primary-button" onClick={resetKiosk}>
             Done
           </button>
