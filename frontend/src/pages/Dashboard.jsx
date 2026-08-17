@@ -64,7 +64,7 @@ function Dashboard() {
     const [updatingLocker, setUpdatingLocker] = useState(false);
     const [controllingLocker, setControllingLocker] = useState(false);
 
-    // Reservation form 鈥� User modal
+    // Reservation form — User modal
     const [showReserveForm, setShowReserveForm] = useState(false);
     const [autoAssign, setAutoAssign] = useState(false);
     const [reserveLockerId, setReserveLockerId] = useState("");
@@ -72,7 +72,7 @@ function Dashboard() {
     const [reserveEnd, setReserveEnd] = useState("");
     const [reserving, setReserving] = useState(false);
 
-    // Reservation form 鈥� Locker modal
+    // Reservation form — Locker modal
     const [showLockerReserveForm, setShowLockerReserveForm] = useState(false);
     const [reserveUserId, setReserveUserId] = useState("");
     const [lockerReserveStart, setLockerReserveStart] = useState("");
@@ -906,7 +906,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            馃懁
+                            👤
                         </div>
 
                         <div>
@@ -917,7 +917,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            馃攼
+                            🔐
                         </div>
 
                         <div>
@@ -928,7 +928,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            鉁�
+                            ✅
                         </div>
 
                         <div>
@@ -939,7 +939,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            馃敀
+                            🔒
                         </div>
 
                         <div>
@@ -950,7 +950,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            鈿�
+                            ⚠️
                         </div>
 
                         <div>
@@ -1237,7 +1237,7 @@ function Dashboard() {
                     ) : accessLogs.length === 0 ? (
 
                         <div className="empty-state">
-                            <div>馃敁</div>
+                            <div>🔓</div>
                             <h3>No access events yet</h3>
                             <p>Locker and door activity will appear here.</p>
                         </div>
@@ -1251,7 +1251,7 @@ function Dashboard() {
                                 <div className="access-log-item" key={log.log_id}>
 
                                     <div className="access-log-icon">
-                                        {log.door_id ? "馃毆" : "馃敀"}
+                                        {log.door_id ? "🚪" : "🔒"}
                                     </div>
 
                                     <div className="access-log-info">
@@ -1324,7 +1324,7 @@ function Dashboard() {
                 <div className="sidebar-brand">
 
                     <div className="sidebar-logo">
-                        馃攼
+                        🔐
                     </div>
 
                     <div>
@@ -1350,7 +1350,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            馃搳
+                            📊
                         </span>
 
                         <span>
@@ -1369,7 +1369,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            馃攼
+                            🔐
                         </span>
 
                         <span>
@@ -1388,7 +1388,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            馃懃
+                            👥
                         </span>
 
                         <span>
@@ -1407,7 +1407,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            馃搵
+                            📋
                         </span>
 
                         <span>
@@ -1480,7 +1480,7 @@ function Dashboard() {
                                 className="modal-close"
                                 onClick={closeUserModal}
                             >
-                                脳
+                                ×
                             </button>
 
                         </div>
@@ -1919,7 +1919,7 @@ function Dashboard() {
                                 }}
                                 disabled={addingUser}
                             >
-                                脳
+                                ×
                             </button>
 
                         </div>
@@ -2011,7 +2011,7 @@ function Dashboard() {
                                 className="modal-close"
                                 onClick={closeLockerModal}
                             >
-                                脳
+                                ×
                             </button>
 
                         </div>
@@ -2314,7 +2314,7 @@ function Dashboard() {
                                                     selectedLocker.is_open ? "is-open" : ""
                                                 }`}
                                             >
-                                                <div className="locker-handle">鈻�</div>
+                                                <div className="locker-handle">▮</div>
                                             </div>
                                         </div>
 
@@ -2332,7 +2332,7 @@ function Dashboard() {
                                         >
                                             {controllingLocker
                                                 ? "Processing..."
-                                                : "馃敁 Open Locker"}
+                                                : "🔓 Open Locker"}
                                         </button>
 
                                         <button
@@ -2342,7 +2342,7 @@ function Dashboard() {
                                         >
                                             {controllingLocker
                                                 ? "Processing..."
-                                                : "馃敀 Close Locker"}
+                                                : "🔒 Close Locker"}
                                         </button>
 
                                     </div>
