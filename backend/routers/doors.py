@@ -12,7 +12,8 @@ from backend.schemas import (
     DoorResponse,
     DoorStatusUpdate,
     DoorPermissionGrant,
-    DoorPermissionResponse
+    DoorPermissionResponse,
+    DoorAccessLogRequest
 )
 
 router = APIRouter(prefix="/doors", tags=["Doors"])
@@ -189,7 +190,11 @@ def get_user_permissions(user_id: int, db: Session = Depends(get_db)):
 # ==================================================
 
 @router.post("/{door_id}/open")
-def open_door(door_id: int, db: Session = Depends(get_db)):
+def open_door(
+    door_id: int,
+    data: DoorAccessLogRequest = None,
+    db: Session = Depends(get_db)
+):
     door = db.query(Door).filter(Door.door_id == door_id).first()
 
     if not door:
@@ -199,6 +204,14 @@ def open_door(door_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Door is offline")
 
     door.is_open = True
+
+    log_entry = AccessLog(
+        user_id=data.user_id if data else None,
+        door_id=door.door_id,
+        action="open"
+    )
+    db.add(log_entry)
+
     db.commit()
     db.refresh(door)
 

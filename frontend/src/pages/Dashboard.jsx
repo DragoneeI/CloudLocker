@@ -16,7 +16,12 @@ import {
     enrollFace,
     activateUser,
     deactivateUser,
-    editUser
+    editUser,
+    getDoors,
+    getUserDoorPermissions,
+    grantDoorPermission,
+    revokeDoorPermission,
+    getAccessLogs
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -46,6 +51,10 @@ function Dashboard() {
     const [editName, setEditName] = useState("");
     const [editEmail, setEditEmail] = useState("");
     const [editing, setEditing] = useState(false);
+    const [allDoors, setAllDoors] = useState([]);
+    const [userDoorPermissions, setUserDoorPermissions] = useState([]);
+    const [loadingDoorPermissions, setLoadingDoorPermissions] = useState(false);
+    const [togglingDoorId, setTogglingDoorId] = useState(null);
 
     // Locker modal
     const [selectedLocker, setSelectedLocker] = useState(null);
@@ -68,6 +77,8 @@ function Dashboard() {
     const [lockerReserveStart, setLockerReserveStart] = useState("");
     const [lockerReserveEnd, setLockerReserveEnd] = useState("");
     const [lockerReserving, setLockerReserving] = useState(false);
+    const [accessLogs, setAccessLogs] = useState([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
 
     /*
      * =========================
@@ -94,6 +105,16 @@ function Dashboard() {
 
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === "access") {
+            setLoadingLogs(true);
+            getAccessLogs()
+                .then(setAccessLogs)
+                .catch(err => console.error("Failed to load access logs:", err))
+                .finally(() => setLoadingLogs(false));
+        }
+    }, [activeTab]);
 
     /*
      * =========================
@@ -145,41 +166,54 @@ function Dashboard() {
         setSelectedUser(user);
         setUserLocker(null);
         setLoadingUser(true);
+        setLoadingDoorPermissions(true);
 
         try {
             const lockerData = await getUserLocker(user.user_id);
-
-            console.log("User locker response:", lockerData);
-
-            /*
-             * Backend response:
-             *
-             * {
-             *     user_id: 1,
-             *     locker: {
-             *         locker_id: 1,
-             *         locker_name: "L001",
-             *         status: "Reserved",
-             *         reservation_id: 11,
-             *         start_time: "...",
-             *         end_time: "..."
-             *     }
-             * }
-             *
-             * Store the locker object itself.
-             *
-             * The fallback also supports the case where
-             * the API function returns the locker directly.
-             */
-
             const locker = lockerData?.locker ?? lockerData ?? null;
-
             setUserLocker(locker);
         } catch (err) {
             console.error("Failed to load user locker:", err);
             setUserLocker(null);
         } finally {
             setLoadingUser(false);
+        }
+
+        try {
+            const [doorsData, permissionsData] = await Promise.all([
+                getDoors(),
+                getUserDoorPermissions(user.user_id),
+            ]);
+
+            setAllDoors(doorsData);
+            setUserDoorPermissions(permissionsData);
+        } catch (err) {
+            console.error("Failed to load door permissions:", err);
+            setAllDoors([]);
+            setUserDoorPermissions([]);
+        } finally {
+            setLoadingDoorPermissions(false);
+        }
+    }
+
+    async function handleToggleDoorAccess(doorId, hasAccess) {
+        if (!selectedUser) return;
+
+        setTogglingDoorId(doorId);
+
+        try {
+            if (hasAccess) {
+                await revokeDoorPermission(selectedUser.user_id, doorId);
+            } else {
+                await grantDoorPermission(selectedUser.user_id, doorId);
+            }
+
+            const permissionsData = await getUserDoorPermissions(selectedUser.user_id);
+            setUserDoorPermissions(permissionsData);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setTogglingDoorId(null);
         }
     }
 
@@ -705,6 +739,8 @@ function Dashboard() {
         setShowEditForm(false);
         setEditName("");
         setEditEmail("");
+        setAllDoors([]);
+        setUserDoorPermissions([]);
     }
 
     function closeLockerModal() {
@@ -1085,114 +1121,82 @@ function Dashboard() {
      */
 
     function renderAccessLog() {
-        const activeAccess = sortedLockers.filter(
-            locker => locker.status === "Reserved"
-        );
+        function resolveUserName(userId) {
+            if (!userId) return "Unknown / Admin";
+            const user = users.find(u => u.user_id === userId);
+            return user ? user.full_name : `User #${userId}`;
+        }
+
+        function resolveTargetName(log) {
+            if (log.locker_id) {
+                const locker = lockers.find(l => l.locker_id === log.locker_id);
+                return locker ? locker.locker_name : `Locker #${log.locker_id}`;
+            }
+            if (log.door_id) {
+                const door = doors.find(d => d.door_id === log.door_id);
+                return door ? door.door_name : `Door #${log.door_id}`;
+            }
+            return "Unknown";
+        }
 
         return (
             <>
                 <div className="page-title">
-
                     <h1>Access Log</h1>
-
-                    <p>
-                        Monitor current locker access
-                    </p>
-
+                    <p>History of locker and door access events</p>
                 </div>
 
                 <section className="dashboard-section">
 
                     <div className="section-header">
-
                         <div>
-                            <h2>Current Access</h2>
-
-                            <p>
-                                Active locker access assignments
-                            </p>
+                            <h2>Recent Events</h2>
+                            <p>Most recent access activity</p>
                         </div>
-
                     </div>
 
-                    {activeAccess.length === 0 ? (
+                    {loadingLogs ? (
 
                         <div className="empty-state">
+                            <p>Loading access logs...</p>
+                        </div>
 
-                            <div>
-                                🔓
-                            </div>
+                    ) : accessLogs.length === 0 ? (
 
-                            <h3>
-                                No active access
-                            </h3>
-
-                            <p>
-                                There are currently no active
-                                locker access assignments.
-                            </p>
-
+                        <div className="empty-state">
+                            <div>🔓</div>
+                            <h3>No access events yet</h3>
+                            <p>Locker and door activity will appear here.</p>
                         </div>
 
                     ) : (
 
                         <div className="access-log-list">
 
-                            {activeAccess.map(locker => (
+                            {accessLogs.map(log => (
 
-                                <div
-                                    className="access-log-item"
-                                    key={locker.locker_id}
-                                    onClick={() =>
-                                        handleLockerClick(
-                                            locker
-                                        )
-                                    }
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={event => {
-
-                                        if (
-                                            event.key === "Enter" ||
-                                            event.key === " "
-                                        ) {
-                                            event.preventDefault();
-
-                                            handleLockerClick(
-                                                locker
-                                            );
-                                        }
-
-                                    }}
-                                >
+                                <div className="access-log-item" key={log.log_id}>
 
                                     <div className="access-log-icon">
-                                        🔒
+                                        {log.door_id ? "🚪" : "🔒"}
                                     </div>
 
                                     <div className="access-log-info">
-
-                                        <h3>
-                                            {locker.locker_name}
-                                        </h3>
-
-                                        <p>
-                                            Locker #
-                                            {locker.locker_id}
-                                        </p>
-
+                                        <h3>{resolveTargetName(log)}</h3>
+                                        <p>{resolveUserName(log.user_id)}</p>
                                     </div>
 
                                     <div className="access-log-status">
-
-                                        <span className="status-badge reserved">
-                                            Reserved
+                                        <span
+                                            className={`status-badge ${
+                                                log.action === "open" ? "reserved" : "offline"
+                                            }`}
+                                        >
+                                            {log.action === "open" ? "Opened" : "Closed"}
                                         </span>
-
                                         <span>
-                                            View details →
+                                            {new Date(log.access_time).toLocaleString()}
                                         </span>
-
                                     </div>
 
                                 </div>
@@ -1450,6 +1454,61 @@ function Dashboard() {
                         {showEditForm && (
 
                             <div className="reservation-box">
+
+                                <h3>Door Access</h3>
+
+                                {loadingDoorPermissions ? (
+
+                                    <p style={{ color: "#6b7280", margin: 0 }}>
+                                        Loading doors...
+                                    </p>
+
+                                ) : allDoors.length === 0 ? (
+
+                                    <p style={{ color: "#6b7280", margin: 0 }}>
+                                        No doors have been added yet.
+                                    </p>
+
+                                ) : (
+
+                                    <div className="reservation-details">
+
+                                        {allDoors.map(door => {
+                                            const hasAccess = userDoorPermissions.some(
+                                                p => p.door_id === door.door_id
+                                            );
+
+                                            return (
+                                                <div
+                                                    key={door.door_id}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between"
+                                                    }}
+                                                >
+                                                    <span>{door.door_name}</span>
+
+                                                    <label className="switch">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={hasAccess}
+                                                            disabled={togglingDoorId === door.door_id}
+                                                            onChange={() =>
+                                                                handleToggleDoorAccess(door.door_id, hasAccess)
+                                                            }
+                                                        />
+                                                        <span className="slider" />
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+
+                                    </div>
+
+                                )}
+
+                            </div>
 
                                 <h3>Edit User</h3>
 

@@ -69,6 +69,34 @@
     color: #6b7280;
 }
 
+.view-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+
+.view-toggle-button {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    background: white;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #6b7280;
+}
+
+.view-toggle-button:hover {
+    border-color: #cbd5e1;
+}
+
+.view-toggle-button.active {
+    background: #111827;
+    border-color: #111827;
+    color: white;
+}
+
 .locker-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));

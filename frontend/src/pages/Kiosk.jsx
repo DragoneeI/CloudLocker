@@ -340,7 +340,7 @@ function Kiosk() {
     setError("");
 
     try {
-      await openDoor(door.door_id);
+      await openDoor(door.door_id, user?.user_id);
       setScreen("door-opened");
 
       // Automatically close after 5 seconds

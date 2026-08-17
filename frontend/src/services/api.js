@@ -374,9 +374,11 @@ export async function doorAccess(doorId, imageBlob) {
     return response.json();
 }
 
-export async function openDoor(doorId) {
+export async function openDoor(doorId, userId = null) {
     const response = await fetch(`${API_URL}/doors/${doorId}/open`, {
         method: "POST",
+        headers: userId ? { "Content-Type": "application/json" } : {},
+        body: userId ? JSON.stringify({ user_id: userId }) : undefined,
     });
 
     if (!response.ok) {
@@ -395,6 +397,76 @@ export async function closeDoor(doorId) {
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.detail || "Failed to close door");
+    }
+
+    return response.json();
+}
+
+export async function getDoorDetails(doorId) {
+    const response = await fetch(`${API_URL}/doors/${doorId}`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch door details");
+    }
+
+    return response.json();
+}
+
+export async function getUserDoorPermissions(userId) {
+    const response = await fetch(`${API_URL}/doors/permissions/user/${userId}`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch user door permissions");
+    }
+
+    return response.json();
+}
+
+export async function grantDoorPermission(userId, doorId) {
+    const response = await fetch(`${API_URL}/doors/permissions/grant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, door_id: doorId }),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to grant door access");
+    }
+
+    return response.json();
+}
+
+export async function revokeDoorPermission(userId, doorId) {
+    const params = new URLSearchParams({
+        user_id: userId,
+        door_id: doorId,
+    });
+
+    const response = await fetch(
+        `${API_URL}/doors/permissions/revoke?${params.toString()}`,
+        { method: "DELETE" }
+    );
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to revoke door access");
+    }
+
+    return response.json();
+}
+
+export async function getAccessLogs() {
+    const response = await fetch(`${API_URL}/access-logs/`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch access logs");
     }
 
     return response.json();

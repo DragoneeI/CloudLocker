@@ -35,3 +35,6 @@ class DoorPermissionResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class DoorAccessLogRequest(BaseModel):
+    user_id: int | None = None

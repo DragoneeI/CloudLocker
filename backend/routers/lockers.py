@@ -5,6 +5,7 @@ from backend.database import get_db
 from backend.models import Locker, Reservation, User
 from backend.services.reservation_service import release_locker
 from backend.schemas import LockerStatusUpdate
+from backend.models.access_log import AccessLog
 
 router = APIRouter(prefix="/lockers", tags=["Lockers"])
 
@@ -160,6 +161,14 @@ def open_locker(
     # ------------------------------------------------
 
     locker.is_open = True
+
+    log_entry = AccessLog(
+        user_id=reservation.user_id,
+        locker_id=locker.locker_id,
+        action="open"
+    )
+    db.add(log_entry)
+
     db.commit()
     db.refresh(locker)
 
