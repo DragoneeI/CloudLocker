@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
     getUsers,
@@ -48,6 +48,7 @@ function Dashboard() {
     const [newUserImage, setNewUserImage] = useState(null);
     const [togglingActive, setTogglingActive] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
+    const [showDoorAccess, setShowDoorAccess] = useState(false);
     const [editName, setEditName] = useState("");
     const [editEmail, setEditEmail] = useState("");
     const [editing, setEditing] = useState(false);
@@ -63,7 +64,7 @@ function Dashboard() {
     const [updatingLocker, setUpdatingLocker] = useState(false);
     const [controllingLocker, setControllingLocker] = useState(false);
 
-    // Reservation form — User modal
+    // Reservation form 鈥� User modal
     const [showReserveForm, setShowReserveForm] = useState(false);
     const [autoAssign, setAutoAssign] = useState(false);
     const [reserveLockerId, setReserveLockerId] = useState("");
@@ -71,7 +72,7 @@ function Dashboard() {
     const [reserveEnd, setReserveEnd] = useState("");
     const [reserving, setReserving] = useState(false);
 
-    // Reservation form — Locker modal
+    // Reservation form 鈥� Locker modal
     const [showLockerReserveForm, setShowLockerReserveForm] = useState(false);
     const [reserveUserId, setReserveUserId] = useState("");
     const [lockerReserveStart, setLockerReserveStart] = useState("");
@@ -79,6 +80,7 @@ function Dashboard() {
     const [lockerReserving, setLockerReserving] = useState(false);
     const [accessLogs, setAccessLogs] = useState([]);
     const [loadingLogs, setLoadingLogs] = useState(false);
+    const autoCloseTimerRef = useRef(null);
 
     /*
      * =========================
@@ -107,14 +109,41 @@ function Dashboard() {
     }, []);
 
     useEffect(() => {
-        if (activeTab === "access") {
-            setLoadingLogs(true);
-            getAccessLogs()
-                .then(setAccessLogs)
-                .catch(err => console.error("Failed to load access logs:", err))
-                .finally(() => setLoadingLogs(false));
-        }
+        if (activeTab !== "access") return;
+
+        let cancelled = false;
+        setLoadingLogs(true);
+
+        Promise.all([getAccessLogs(), getDoors()])
+            .then(([logsData, doorsData]) => {
+                if (cancelled) return;
+                setAccessLogs(logsData);
+                setAllDoors(doorsData);
+            })
+            .catch(err => {
+                if (cancelled) return;
+                console.error("Failed to load access log data:", err);
+                setAccessLogs([]);
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoadingLogs(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, [activeTab]);
+
+    useEffect(() => {
+        return () => {
+            if (autoCloseTimerRef.current) {
+                clearTimeout(autoCloseTimerRef.current);
+                autoCloseTimerRef.current = null;
+            }
+        };
+    }, []);
 
     /*
      * =========================
@@ -344,6 +373,19 @@ function Dashboard() {
             return;
         }
 
+        const startDate = new Date(reserveStart);
+        const endDate = new Date(reserveEnd);
+
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            alert("Please enter valid start and end times.");
+            return;
+        }
+
+        if (endDate <= startDate) {
+            alert("End time must be after start time.");
+            return;
+        }
+
         if (!autoAssign && !reserveLockerId) {
             alert("Please select a locker or switch on automatic assignment.");
             return;
@@ -354,8 +396,8 @@ function Dashboard() {
         try {
             const payload = {
                 user_id: selectedUser.user_id,
-                start_time: new Date(reserveStart).toISOString(),
-                end_time: new Date(reserveEnd).toISOString(),
+                start_time: startDate.toISOString(),
+                end_time: endDate.toISOString(),
             };
 
             if (autoAssign) {
@@ -401,8 +443,27 @@ function Dashboard() {
             return;
         }
 
+        const numericUserId = Number(reserveUserId);
+        if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
+            alert("Please enter a valid user ID.");
+            return;
+        }
+
         if (!lockerReserveStart || !lockerReserveEnd) {
             alert("Please set both start and end time.");
+            return;
+        }
+
+        const startDate = new Date(lockerReserveStart);
+        const endDate = new Date(lockerReserveEnd);
+
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+            alert("Please enter valid start and end times.");
+            return;
+        }
+
+        if (endDate <= startDate) {
+            alert("End time must be after start time.");
             return;
         }
 
@@ -410,10 +471,10 @@ function Dashboard() {
 
         try {
             await createReservation({
-                user_id: Number(reserveUserId),
+                user_id: numericUserId,
                 locker_id: selectedLocker.locker_id,
-                start_time: new Date(lockerReserveStart).toISOString(),
-                end_time: new Date(lockerReserveEnd).toISOString(),
+                start_time: startDate.toISOString(),
+                end_time: endDate.toISOString(),
             });
 
             const [usersData, lockersData] = await Promise.all([
@@ -470,11 +531,19 @@ function Dashboard() {
         }
     }
 
+    function clearAutoCloseTimer() {
+        if (autoCloseTimerRef.current) {
+            clearTimeout(autoCloseTimerRef.current);
+            autoCloseTimerRef.current = null;
+        }
+    }
+
     async function handleOpenLocker() {
         if (!selectedLocker) {
             return;
         }
 
+        clearAutoCloseTimer();
         setControllingLocker(true);
 
         try {
@@ -506,7 +575,8 @@ function Dashboard() {
             );
 
             // Automatically close after 5 seconds
-            setTimeout(async () => {
+            autoCloseTimerRef.current = setTimeout(async () => {
+                autoCloseTimerRef.current = null;
                 try {
                     await closeLocker(
                         selectedLocker.locker_id
@@ -553,6 +623,7 @@ function Dashboard() {
             return;
         }
 
+        clearAutoCloseTimer();
         setControllingLocker(true);
 
         try {
@@ -737,6 +808,7 @@ function Dashboard() {
         setReserveStart("");
         setReserveEnd("");
         setShowEditForm(false);
+        setShowDoorAccess(false);
         setEditName("");
         setEditEmail("");
         setAllDoors([]);
@@ -748,6 +820,7 @@ function Dashboard() {
             return;
         }
 
+        clearAutoCloseTimer();
         setSelectedLocker(null);
         setLockerDetails(null);
         setShowLockerReserveForm(false);
@@ -833,7 +906,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            👤
+                            馃懁
                         </div>
 
                         <div>
@@ -844,7 +917,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            🔐
+                            馃攼
                         </div>
 
                         <div>
@@ -855,7 +928,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            ✓
+                            鉁�
                         </div>
 
                         <div>
@@ -866,7 +939,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            🔒
+                            馃敀
                         </div>
 
                         <div>
@@ -877,7 +950,7 @@ function Dashboard() {
 
                     <div className="stat-card">
                         <div className="stat-icon">
-                            ⚠
+                            鈿�
                         </div>
 
                         <div>
@@ -1064,7 +1137,7 @@ function Dashboard() {
                             >
 
                                 <div className="user-avatar">
-                                    {user.full_name
+                                    {(user.full_name || "?")
                                         .charAt(0)
                                         .toUpperCase()}
                                 </div>
@@ -1133,7 +1206,7 @@ function Dashboard() {
                 return locker ? locker.locker_name : `Locker #${log.locker_id}`;
             }
             if (log.door_id) {
-                const door = doors.find(d => d.door_id === log.door_id);
+                const door = allDoors.find(d => d.door_id === log.door_id);
                 return door ? door.door_name : `Door #${log.door_id}`;
             }
             return "Unknown";
@@ -1164,7 +1237,7 @@ function Dashboard() {
                     ) : accessLogs.length === 0 ? (
 
                         <div className="empty-state">
-                            <div>🔓</div>
+                            <div>馃敁</div>
                             <h3>No access events yet</h3>
                             <p>Locker and door activity will appear here.</p>
                         </div>
@@ -1178,7 +1251,7 @@ function Dashboard() {
                                 <div className="access-log-item" key={log.log_id}>
 
                                     <div className="access-log-icon">
-                                        {log.door_id ? "🚪" : "🔒"}
+                                        {log.door_id ? "馃毆" : "馃敀"}
                                     </div>
 
                                     <div className="access-log-info">
@@ -1251,7 +1324,7 @@ function Dashboard() {
                 <div className="sidebar-brand">
 
                     <div className="sidebar-logo">
-                        🔐
+                        馃攼
                     </div>
 
                     <div>
@@ -1277,7 +1350,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            📊
+                            馃搳
                         </span>
 
                         <span>
@@ -1296,7 +1369,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            🔐
+                            馃攼
                         </span>
 
                         <span>
@@ -1315,7 +1388,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            👥
+                            馃懃
                         </span>
 
                         <span>
@@ -1334,7 +1407,7 @@ function Dashboard() {
                         }
                     >
                         <span className="sidebar-icon">
-                            📋
+                            馃搵
                         </span>
 
                         <span>
@@ -1407,7 +1480,7 @@ function Dashboard() {
                                 className="modal-close"
                                 onClick={closeUserModal}
                             >
-                                ×
+                                脳
                             </button>
 
                         </div>
@@ -1432,9 +1505,22 @@ function Dashboard() {
 
                             <button
                                 className="locker-door-button open"
-                                onClick={() => setShowEditForm(!showEditForm)}
+                                onClick={() => {
+                                    setShowEditForm(prev => !prev);
+                                    setShowDoorAccess(false);
+                                }}
                             >
-                                Edit User
+                                {showEditForm ? "Close Edit" : "Edit User"}
+                            </button>
+
+                            <button
+                                className="locker-door-button open"
+                                onClick={() => {
+                                    setShowDoorAccess(prev => !prev);
+                                    setShowEditForm(false);
+                                }}
+                            >
+                                {showDoorAccess ? "Close Door Access" : "Door Access"}
                             </button>
 
                             <button
@@ -1452,64 +1538,7 @@ function Dashboard() {
                         </div>
 
                         {showEditForm && (
-
                             <div className="reservation-box">
-
-                                <h3>Door Access</h3>
-
-                                {loadingDoorPermissions ? (
-
-                                    <p style={{ color: "#6b7280", margin: 0 }}>
-                                        Loading doors...
-                                    </p>
-
-                                ) : allDoors.length === 0 ? (
-
-                                    <p style={{ color: "#6b7280", margin: 0 }}>
-                                        No doors have been added yet.
-                                    </p>
-
-                                ) : (
-
-                                    <div className="reservation-details">
-
-                                        {allDoors.map(door => {
-                                            const hasAccess = userDoorPermissions.some(
-                                                p => p.door_id === door.door_id
-                                            );
-
-                                            return (
-                                                <div
-                                                    key={door.door_id}
-                                                    style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "space-between"
-                                                    }}
-                                                >
-                                                    <span>{door.door_name}</span>
-
-                                                    <label className="switch">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={hasAccess}
-                                                            disabled={togglingDoorId === door.door_id}
-                                                            onChange={() =>
-                                                                handleToggleDoorAccess(door.door_id, hasAccess)
-                                                            }
-                                                        />
-                                                        <span className="slider" />
-                                                    </label>
-                                                </div>
-                                            );
-                                        })}
-
-                                    </div>
-
-                                )}
-
-                            </div>
-
                                 <h3>Edit User</h3>
 
                                 <div className="info-item">
@@ -1551,9 +1580,64 @@ function Dashboard() {
                                 >
                                     Cancel
                                 </button>
-
                             </div>
+                        )}
 
+                        {showDoorAccess && (
+                            <div className="reservation-box">
+                                <h3>Door Access</h3>
+
+                                {loadingDoorPermissions ? (
+                                    <p style={{ color: "#6b7280", margin: 0 }}>
+                                        Loading doors...
+                                    </p>
+                                ) : allDoors.length === 0 ? (
+                                    <p style={{ color: "#6b7280", margin: 0 }}>
+                                        No doors have been added yet.
+                                    </p>
+                                ) : (
+                                    <div className="reservation-details">
+                                        {allDoors.map(door => {
+                                            const hasAccess = userDoorPermissions.some(
+                                                p => p.door_id === door.door_id
+                                            );
+
+                                            return (
+                                                <div
+                                                    key={door.door_id}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "space-between"
+                                                    }}
+                                                >
+                                                    <span>{door.door_name}</span>
+
+                                                    <label className="switch">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={hasAccess}
+                                                            disabled={togglingDoorId === door.door_id}
+                                                            onChange={() =>
+                                                                handleToggleDoorAccess(door.door_id, hasAccess)
+                                                            }
+                                                        />
+                                                        <span className="slider" />
+                                                    </label>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <button
+                                    className="modal-close"
+                                    onClick={() => setShowDoorAccess(false)}
+                                    disabled={loadingDoorPermissions || togglingDoorId !== null}
+                                >
+                                    Close Door Access
+                                </button>
+                            </div>
                         )}
 
                         <div className="user-modal-info">
@@ -1835,7 +1919,7 @@ function Dashboard() {
                                 }}
                                 disabled={addingUser}
                             >
-                                ×
+                                脳
                             </button>
 
                         </div>
@@ -1927,7 +2011,7 @@ function Dashboard() {
                                 className="modal-close"
                                 onClick={closeLockerModal}
                             >
-                                ×
+                                脳
                             </button>
 
                         </div>
@@ -2230,7 +2314,7 @@ function Dashboard() {
                                                     selectedLocker.is_open ? "is-open" : ""
                                                 }`}
                                             >
-                                                <div className="locker-handle">▪</div>
+                                                <div className="locker-handle">鈻�</div>
                                             </div>
                                         </div>
 
@@ -2248,7 +2332,7 @@ function Dashboard() {
                                         >
                                             {controllingLocker
                                                 ? "Processing..."
-                                                : "🔓 Open Locker"}
+                                                : "馃敁 Open Locker"}
                                         </button>
 
                                         <button
@@ -2258,7 +2342,7 @@ function Dashboard() {
                                         >
                                             {controllingLocker
                                                 ? "Processing..."
-                                                : "🔒 Close Locker"}
+                                                : "馃敀 Close Locker"}
                                         </button>
 
                                     </div>
