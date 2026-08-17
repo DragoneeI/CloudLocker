@@ -11,7 +11,12 @@ import {
     openLocker,
     closeLocker,
     createReservation,
-    createAutoReservation
+    createAutoReservation,
+    createUser,
+    enrollFace,
+    activateUser,
+    deactivateUser,
+    editUser
 } from "../services/api";
 
 import "./Dashboard.css";
@@ -31,6 +36,16 @@ function Dashboard() {
     const [userLocker, setUserLocker] = useState(null);
     const [loadingUser, setLoadingUser] = useState(false);
     const [releasing, setReleasing] = useState(false);
+    const [showAddUserForm, setShowAddUserForm] = useState(false);
+    const [newUserName, setNewUserName] = useState("");
+    const [newUserEmail, setNewUserEmail] = useState("");
+    const [addingUser, setAddingUser] = useState(false);
+    const [newUserImage, setNewUserImage] = useState(null);
+    const [togglingActive, setTogglingActive] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editEmail, setEditEmail] = useState("");
+    const [editing, setEditing] = useState(false);
 
     // Locker modal
     const [selectedLocker, setSelectedLocker] = useState(null);
@@ -86,6 +101,45 @@ function Dashboard() {
      * =========================
      */
 
+    async function handleAddUser() {
+        if (!newUserName.trim() || !newUserEmail.trim()) {
+            alert("Please enter both name and email.");
+            return;
+        }
+
+        setAddingUser(true);
+
+        try {
+            const newUser = await createUser({
+                full_name: newUserName.trim(),
+                email: newUserEmail.trim(),
+            });
+
+            if (newUserImage) {
+                try {
+                    await enrollFace(newUser.user_id, newUserImage);
+                } catch (err) {
+                    alert(
+                        `User created, but face enrollment failed: ${err.message}`
+                    );
+                }
+            }
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            setShowAddUserForm(false);
+            setNewUserName("");
+            setNewUserEmail("");
+            setNewUserImage(null);
+
+            alert("User added successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setAddingUser(false);
+        }
+    }
 
     async function handleUserClick(user) {
         setSelectedUser(user);
@@ -126,6 +180,79 @@ function Dashboard() {
             setUserLocker(null);
         } finally {
             setLoadingUser(false);
+        }
+    }
+
+    async function handleToggleActive() {
+        if (!selectedUser) return;
+
+        const action = selectedUser.is_active ? "deactivate" : "activate";
+
+        const confirmed = window.confirm(
+            `${action === "deactivate" ? "Deactivate" : "Activate"} ${selectedUser.full_name}?`
+        );
+
+        if (!confirmed) return;
+
+        setTogglingActive(true);
+
+        try {
+            if (action === "deactivate") {
+                await deactivateUser(selectedUser.user_id);
+            } else {
+                await activateUser(selectedUser.user_id);
+            }
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            const updatedUser = usersData.find(
+                u => u.user_id === selectedUser.user_id
+            );
+            setSelectedUser(updatedUser || selectedUser);
+
+            alert(`User ${action}d successfully.`);
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setTogglingActive(false);
+        }
+    }
+
+    async function handleEditUser() {
+        if (!selectedUser) return;
+
+        if (!editName.trim() && !editEmail.trim()) {
+            alert("Enter a new name or email to update.");
+            return;
+        }
+
+        setEditing(true);
+
+        try {
+            await editUser(
+                selectedUser.user_id,
+                editName.trim() || null,
+                editEmail.trim() || null
+            );
+
+            const usersData = await getUsers();
+            setUsers(usersData);
+
+            const updatedUser = usersData.find(
+                u => u.user_id === selectedUser.user_id
+            );
+            setSelectedUser(updatedUser || selectedUser);
+
+            setShowEditForm(false);
+            setEditName("");
+            setEditEmail("");
+
+            alert("User updated successfully.");
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            setEditing(false);
         }
     }
 
@@ -575,6 +702,9 @@ function Dashboard() {
         setReserveLockerId("");
         setReserveStart("");
         setReserveEnd("");
+        setShowEditForm(false);
+        setEditName("");
+        setEditEmail("");
     }
 
     function closeLockerModal() {
@@ -736,22 +866,13 @@ function Dashboard() {
     function renderLockers() {
         return (
             <>
-                <div className="page-title">
-
-                    <h1>Lockers</h1>
-
-                    <p>
-                        Manage and monitor all lockers
-                    </p>
-
-                </div>
 
                 <section className="dashboard-section">
 
                     <div className="section-header">
 
                         <div>
-                            <h2>Locker Status</h2>
+                            <h2>Lockers Status</h2>
 
                             <p>
                                 Current status of all lockers
@@ -842,26 +963,22 @@ function Dashboard() {
     function renderUsers() {
         return (
             <>
-                <div className="page-title">
-
-                    <h1>Users</h1>
-
-                    <p>
-                        Manage registered SmartLocker users
-                    </p>
-
-                </div>
 
                 <section className="dashboard-section">
 
                     <div className="section-header">
 
-                        <div>
-                            <h2>Users</h2>
-
-                            <p>
-                                Registered SmartLocker users
-                            </p>
+                       <div>
+                            <div className="section-title-row">
+                                <h2>Users</h2>
+                                <button
+                                    className="add-user-button"
+                                    onClick={() => setShowAddUserForm(true)}
+                                >
+                                    + Add User
+                                </button>
+                            </div>
+                            <p>Registered SmartLocker users</p>
                         </div>
 
                         <div className="user-summary">
@@ -1307,6 +1424,79 @@ function Dashboard() {
 
                         </div>
 
+                        <div className="locker-door-buttons">
+
+                            <button
+                                className="locker-door-button open"
+                                onClick={() => setShowEditForm(!showEditForm)}
+                            >
+                                Edit User
+                            </button>
+
+                            <button
+                                className="locker-door-button close"
+                                onClick={handleToggleActive}
+                                disabled={togglingActive}
+                            >
+                                {togglingActive
+                                    ? "Processing..."
+                                    : selectedUser.is_active
+                                    ? "Deactivate User"
+                                    : "Activate User"}
+                            </button>
+
+                        </div>
+
+                        {showEditForm && (
+
+                            <div className="reservation-box">
+
+                                <h3>Edit User</h3>
+
+                                <div className="info-item">
+                                    <span>New Full Name</span>
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={e => setEditName(e.target.value)}
+                                        placeholder={selectedUser.full_name}
+                                    />
+                                </div>
+
+                                <div className="info-item">
+                                    <span>New Email</span>
+                                    <input
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={e => setEditEmail(e.target.value)}
+                                        placeholder={selectedUser.email}
+                                    />
+                                </div>
+
+                                <button
+                                    className="force-release-button"
+                                    onClick={handleEditUser}
+                                    disabled={editing}
+                                >
+                                    {editing ? "Saving..." : "Save Changes"}
+                                </button>
+
+                                <button
+                                    className="modal-close"
+                                    onClick={() => {
+                                        setShowEditForm(false);
+                                        setEditName("");
+                                        setEditEmail("");
+                                    }}
+                                    disabled={editing}
+                                >
+                                    Cancel
+                                </button>
+
+                            </div>
+
+                        )}
+
                         <div className="user-modal-info">
                             
                             <div className="info-item">
@@ -1545,6 +1735,97 @@ function Dashboard() {
                             </div>
 
                         )}
+
+                    </div>
+
+                </div>
+
+            )}
+
+            {/* ADD USER MODAL */}
+
+            {showAddUserForm && (
+
+                <div
+                    className="user-modal-overlay"
+                    onClick={() => {
+                        if (!addingUser) {
+                            setShowAddUserForm(false);
+                            setNewUserImage(null);
+                        }
+                    }}
+                >
+
+                    <div
+                        className="user-modal"
+                        onClick={event => event.stopPropagation()}
+                    >
+
+                        <div className="user-modal-header">
+
+                            <div>
+                                <h2>Add User</h2>
+                                <p>Create a new SmartLocker user</p>
+                            </div>
+
+                            <button
+                                className="modal-close"
+                                onClick={() => {
+                                    setShowAddUserForm(false);
+                                    setNewUserImage(null);
+                                }}
+                                disabled={addingUser}
+                            >
+                                ×
+                            </button>
+
+                        </div>
+
+                        <div className="reservation-box">
+
+                            <div className="info-item">
+                                <span>Full Name</span>
+                                <input
+                                    type="text"
+                                    value={newUserName}
+                                    onChange={e => setNewUserName(e.target.value)}
+                                    placeholder="Enter full name"
+                                />
+                            </div>
+
+                            <div className="info-item">
+                                <span>Email</span>
+                                <input
+                                    type="email"
+                                    value={newUserEmail}
+                                    onChange={e => setNewUserEmail(e.target.value)}
+                                    placeholder="Enter email"
+                                />
+                            </div>
+
+                            <div className="info-item">
+                                <span>Face Image</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={e => setNewUserImage(e.target.files[0] || null)}
+                                />
+                                {newUserImage && (
+                                    <p style={{ marginTop: "6px", fontSize: "13px", color: "#6b7280" }}>
+                                        Selected: {newUserImage.name}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                className="force-release-button"
+                                onClick={handleAddUser}
+                                disabled={addingUser}
+                            >
+                                {addingUser ? "Adding..." : "Add User"}
+                            </button>
+
+                        </div>
 
                     </div>
 

@@ -191,6 +191,29 @@ export async function activateUser(userId) {
     return response.json();
 }
 
+export async function editUser(userId, newName, newEmail) {
+    const params = new URLSearchParams({ user_id: userId });
+    if (newName) params.append("new_name", newName);
+    if (newEmail) params.append("new_email", newEmail);
+
+    const response = await fetch(`${API_URL}/users?${params.toString()}`, {
+        method: "PATCH",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to update user";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
 export async function faceAccess(imageBlob) {
     const formData = new FormData();
     formData.append("image", imageBlob, "capture.jpg");
@@ -267,6 +290,111 @@ export async function createAutoReservation(payload) {
                 ? data.detail.map(d => d.msg).join(", ")
                 : "Failed to create reservation";
         throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function createUser(payload) {
+    const response = await fetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to create user";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function enrollFace(userId, imageFile) {
+    const formData = new FormData();
+    formData.append("image", imageFile);
+
+    const response = await fetch(`${API_URL}/face/enroll/${userId}`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Failed to enroll face";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function getDoors() {
+    const response = await fetch(`${API_URL}/doors`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch doors");
+    }
+
+    return response.json();
+}
+
+export async function doorAccess(doorId, imageBlob) {
+    const formData = new FormData();
+    formData.append("image", imageBlob, "capture.jpg");
+
+    const response = await fetch(`${API_URL}/doors/${doorId}/access`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Door access failed";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function openDoor(doorId) {
+    const response = await fetch(`${API_URL}/doors/${doorId}/open`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to open door");
+    }
+
+    return response.json();
+}
+
+export async function closeDoor(doorId) {
+    const response = await fetch(`${API_URL}/doors/${doorId}/close`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to close door");
     }
 
     return response.json();
