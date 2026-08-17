@@ -505,7 +505,7 @@ function Lockers() {
 
                     <p>
                         Representation of the
-                        SmartLocker access system
+                        Smart access system
                     </p>
                 </div>
 

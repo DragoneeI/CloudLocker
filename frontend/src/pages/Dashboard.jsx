@@ -898,7 +898,7 @@ function Dashboard() {
                     <h1>Overview</h1>
 
                     <p>
-                        SmartLocker system overview
+                        Smart Access system overview
                     </p>
                 </div>
 
@@ -1087,7 +1087,7 @@ function Dashboard() {
                                     + Add User
                                 </button>
                             </div>
-                            <p>Registered SmartLocker users</p>
+                            <p>Registered Smart Access users</p>
                         </div>
 
                         <div className="user-summary">
@@ -1328,7 +1328,7 @@ function Dashboard() {
                     </div>
 
                     <div>
-                        <h2>SmartLocker</h2>
+                        <h2>Smart Access</h2>
 
                         <span>
                             Management
@@ -1428,7 +1428,7 @@ function Dashboard() {
                         </span>
 
                         <span className="sidebar-status-text">
-                            SmartLocker connected
+                            Smart Access connected
                         </span>
 
                     </div>
@@ -1908,7 +1908,7 @@ function Dashboard() {
 
                             <div>
                                 <h2>Add User</h2>
-                                <p>Create a new SmartLocker user</p>
+                                <p>Create a new Smart Access user</p>
                             </div>
 
                             <button
