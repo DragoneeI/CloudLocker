@@ -226,7 +226,7 @@ def close_door(door_id: int, db: Session = Depends(get_db)):
         "door_name": door.door_name
     }
 
-    @router.post("/{door_id}/access")
+@router.post("/{door_id}/access")
 async def door_access(
     door_id: int,
     image: UploadFile,
