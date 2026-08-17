@@ -1331,7 +1331,7 @@ function Dashboard() {
                         <h2>Smart Access</h2>
 
                         <span>
-                            Management
+                            System Management
                         </span>
                     </div>
 
