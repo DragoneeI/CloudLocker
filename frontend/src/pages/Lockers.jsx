@@ -713,13 +713,13 @@ function Lockers() {
                                         </span>
                                     </div>
 
-                                    <div className="locker-door">
+                                    <div className="locker-door door-visual">
                                         <div
-                                            className={`locker-door-panel ${
+                                            className={`locker-door-panel door-panel-wood ${
                                                 door.is_open ? "is-open" : ""
                                             }`}
                                         >
-                                            <div className="locker-handle">▪</div>
+                                            <div className="door-knob"></div>
                                         </div>
                                     </div>
 
@@ -1042,13 +1042,13 @@ function Lockers() {
 
                                 {!loadingDoorDetails && (
 
-                                    <div className="locker-door modal-door">
+                                    <div className="locker-door modal-door door-visual">
                                         <div
-                                            className={`locker-door-panel ${
+                                            className={`locker-door-panel door-panel-wood ${
                                                 doorPanelOpen ? "is-open" : ""
                                             }`}
                                         >
-                                            <div className="locker-handle">▪</div>
+                                            <div className="door-knob"></div>
                                         </div>
                                     </div>
 
