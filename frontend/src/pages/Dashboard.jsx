@@ -1631,7 +1631,7 @@ function Dashboard() {
                                 )}
 
                                 <button
-                                    className="modal-close"
+                                    className="door-access-close"
                                     onClick={() => setShowDoorAccess(false)}
                                     disabled={loadingDoorPermissions || togglingDoorId !== null}
                                 >
