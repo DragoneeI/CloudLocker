@@ -338,3 +338,64 @@ export async function enrollFace(userId, imageFile) {
 
     return response.json();
 }
+
+export async function getDoors() {
+    const response = await fetch(`${API_URL}/doors`, {
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch doors");
+    }
+
+    return response.json();
+}
+
+export async function doorAccess(doorId, imageBlob) {
+    const formData = new FormData();
+    formData.append("image", imageBlob, "capture.jpg");
+
+    const response = await fetch(`${API_URL}/doors/${doorId}/access`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const message =
+            typeof data.detail === "string"
+                ? data.detail
+                : Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join(", ")
+                : "Door access failed";
+        throw new Error(message);
+    }
+
+    return response.json();
+}
+
+export async function openDoor(doorId) {
+    const response = await fetch(`${API_URL}/doors/${doorId}/open`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to open door");
+    }
+
+    return response.json();
+}
+
+export async function closeDoor(doorId) {
+    const response = await fetch(`${API_URL}/doors/${doorId}/close`, {
+        method: "POST",
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to close door");
+    }
+
+    return response.json();
+}

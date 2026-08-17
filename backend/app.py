@@ -2,13 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from backend.routers import (
+ffrom backend.routers import (
     health,
     lockers,
     users,
     reservation_router,
     access_log_router,
-    face_router
+    face_router,
+    doors
 )
 
 from backend.database import SessionLocal
@@ -38,6 +39,7 @@ app.include_router(users.router)
 app.include_router(reservation_router)
 app.include_router(access_log_router)
 app.include_router(face_router)
+app.include_router(doors.router)
 scheduler = BackgroundScheduler()
 
 
